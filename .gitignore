@@ -1,0 +1,37 @@
+# 시크릿 - 절대 커밋 금지
+.env
+backend/.env
+**/.env.local
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+
+# SQLite / 로컬 산출물 (실제 경로는 backend/가 아니라 프로젝트 루트 data/)
+data/app.db
+data/processed/
+
+# Node / 웹 대시보드
+node_modules/
+web-dashboard/build/
+web-dashboard/dist/
+
+# Android / 모바일 앱 (mobile-app)
+mobile-app/local.properties
+mobile-app/.gradle/
+mobile-app/**/build/
+mobile-app/.idea/
+mobile-app/*.iml
+mobile-app/**/*.iml
+mobile-app/captures/
+mobile-app/.cxx/
+mobile-app/*.hprof
+
+# IDE
+.vscode/
+.idea/
+
+# Claude Code 로컬 설정(개인 권한 설정, 공유 불필요)
+.claude/settings.local.json

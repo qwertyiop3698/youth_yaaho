@@ -1,0 +1,68 @@
+# 버전 카탈로그 - 모든 라이브러리 버전을 여기서 중앙관리한다.
+#
+# 아래 버전들은 이 파일을 작성한 시점(2026-07) 기준 최신 안정판으로 조사해 고정한
+# 값이다. Android Studio가 "Upgrade" 제안을 띄우면 여기 숫자만 바꾸면 된다(다른
+# 파일은 손댈 필요 없음).
+
+[versions]
+agp = "9.2.0"
+kotlin = "2.2.0"
+coreKtx = "1.15.0"
+lifecycle = "2.9.0"
+activityCompose = "1.10.0"
+composeBom = "2026.06.00"
+navigationCompose = "2.9.0"
+retrofit = "3.0.0"
+okhttp = "4.12.0"
+kotlinxSerializationJson = "1.8.0"
+kotlinxCoroutines = "1.9.0"
+datastore = "1.1.1"
+mpAndroidChart = "v3.1.0"
+junit = "4.13.2"
+mockk = "1.13.13"
+turbine = "1.2.0"
+coreTesting = "2.2.0"
+
+[libraries]
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle" }
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
+androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+
+compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+compose-ui = { group = "androidx.compose.ui", name = "ui" }
+compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
+compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
+compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+
+retrofit-core = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
+# JakeWharton의 retrofit2-kotlinx-serialization-converter는 archived됨 - Retrofit
+# 3.x부터 공식 1st-party 컨버터로 흡수됐다(square/retrofit 저장소, 2025-05 확인).
+retrofit-kotlinx-serialization-converter = { group = "com.squareup.retrofit2", name = "converter-kotlinx-serialization", version.ref = "retrofit" }
+okhttp-core = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+okhttp-logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
+kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutines" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
+
+# 레이더차트 - Vico는 radar 미지원이라 원본 MPAndroidChart를 AndroidView로 래핑해서 사용(docs/09 조사 결론).
+mp-android-chart = { group = "com.github.PhilJay", name = "MPAndroidChart", version.ref = "mpAndroidChart" }
+
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
+androidx-core-testing = { group = "androidx.arch.core", name = "core-testing", version.ref = "coreTesting" }
+androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version = "3.6.1" }
+androidx-junit = { group = "androidx.test.ext", name = "junit", version = "1.2.1" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+# org.jetbrains.kotlin.android는 일부러 안 씀 - AGP 9.0+ built-in Kotlin과 충돌
+# ("Cannot add extension with name 'kotlin'"). app/build.gradle.kts 주석 참고.
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

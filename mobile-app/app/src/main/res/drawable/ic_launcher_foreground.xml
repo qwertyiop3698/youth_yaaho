@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 임시 런처 아이콘(디자인 확정 전 placeholder) - 브랜드 컬러 원 하나. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FF6B4A"
+        android:pathData="M54,29 A25,25 0 1 1 53.99,29 Z" />
+</vector>
