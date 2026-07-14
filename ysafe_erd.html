@@ -1,0 +1,601 @@
+<title>Y-SAFE DB 개념스키마 &amp; ERD</title>
+<style>
+  :root {
+    --paper: #eef1f5;
+    --panel: #ffffff;
+    --panel-2: #f6f7f9;
+    --ink: #1b2430;
+    --sub: #566072;
+    --line: #c7cdd6;
+    --line-strong: #98a2b3;
+    --accent: #3457d5;
+    --accent-soft: #dde4fb;
+    --warn: #a85a13;
+    --warn-soft: #f7e6d3;
+    --muted: #7c8797;
+    --muted-soft: #e7eaee;
+    --good: #2f7a4f;
+    --good-soft: #dcefe1;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #10141b;
+      --panel: #171d27;
+      --panel-2: #1b212b;
+      --ink: #e7eaf0;
+      --sub: #9aa4b2;
+      --line: #313b4a;
+      --line-strong: #4a5568;
+      --accent: #7f9aff;
+      --accent-soft: #232c47;
+      --warn: #e0a458;
+      --warn-soft: #3a2c1a;
+      --muted: #7b8494;
+      --muted-soft: #232830;
+      --good: #63c58a;
+      --good-soft: #1b2e22;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #10141b;
+    --panel: #171d27;
+    --panel-2: #1b212b;
+    --ink: #e7eaf0;
+    --sub: #9aa4b2;
+    --line: #313b4a;
+    --line-strong: #4a5568;
+    --accent: #7f9aff;
+    --accent-soft: #232c47;
+    --warn: #e0a458;
+    --warn-soft: #3a2c1a;
+    --muted: #7b8494;
+    --muted-soft: #232830;
+    --good: #63c58a;
+    --good-soft: #1b2e22;
+  }
+  :root[data-theme="light"] {
+    --paper: #eef1f5;
+    --panel: #ffffff;
+    --panel-2: #f6f7f9;
+    --ink: #1b2430;
+    --sub: #566072;
+    --line: #c7cdd6;
+    --line-strong: #98a2b3;
+    --accent: #3457d5;
+    --accent-soft: #dde4fb;
+    --warn: #a85a13;
+    --warn-soft: #f7e6d3;
+    --muted: #7c8797;
+    --muted-soft: #e7eaee;
+    --good: #2f7a4f;
+    --good-soft: #dcefe1;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+    line-height: 1.65;
+    padding: 48px 20px 80px;
+  }
+
+  .page {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+  }
+
+  header.hero {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 28px;
+  }
+
+  .eyebrow {
+    font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  h1 {
+    font-family: Georgia, "Iowan Old Style", "Noto Serif KR", serif;
+    font-size: clamp(1.7rem, 2.6vw, 2.5rem);
+    margin: 0;
+    text-wrap: balance;
+    letter-spacing: -0.01em;
+  }
+
+  .hero-sub {
+    color: var(--sub);
+    font-size: 1rem;
+    max-width: 62ch;
+  }
+
+  section {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  h2 {
+    font-family: Georgia, "Iowan Old Style", "Noto Serif KR", serif;
+    font-size: 1.35rem;
+    margin: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  h2 .tag {
+    font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+    font-size: 0.72rem;
+    color: var(--sub);
+    font-weight: 400;
+    letter-spacing: 0.04em;
+  }
+
+  p.lead {
+    color: var(--sub);
+    max-width: 68ch;
+    font-size: 0.96rem;
+  }
+
+  /* ---------- 개념 스키마 카드 ---------- */
+
+  .concept-groups {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+  }
+
+  .concept-card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .concept-card .group-label {
+    font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .concept-card h3 {
+    margin: 0;
+    font-size: 1.02rem;
+    font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+  }
+
+  .concept-card p {
+    margin: 0;
+    font-size: 0.88rem;
+    color: var(--sub);
+  }
+
+  .concept-card.dead {
+    border-style: dashed;
+    color: var(--muted);
+  }
+  .concept-card.dead .group-label { color: var(--muted); }
+  .concept-card.dead h3 { color: var(--muted); }
+
+  /* ---------- ERD 다이어그램 ---------- */
+
+  .erd-scroll {
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background:
+      linear-gradient(var(--panel-2) 1px, transparent 1px),
+      linear-gradient(90deg, var(--panel-2) 1px, transparent 1px);
+    background-size: 24px 24px;
+    background-color: var(--panel);
+    padding: 12px;
+  }
+
+  .erd-canvas {
+    position: relative;
+    width: 1120px;
+    height: 860px;
+  }
+
+  .erd-canvas svg { position: absolute; inset: 0; overflow: visible; }
+
+  .entity {
+    position: absolute;
+    background: var(--panel);
+    border: 1.5px solid var(--line-strong);
+    border-radius: 14px;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+    font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+    font-size: 0.8rem;
+    overflow: hidden;
+  }
+
+  .entity .head {
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 8px 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    border-bottom: 1px solid var(--line-strong);
+    font-size: 0.82rem;
+  }
+
+  .entity ul {
+    list-style: none;
+    margin: 0;
+    padding: 6px 0;
+  }
+
+  .entity li {
+    padding: 3px 12px;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+
+  .entity li .ftype { color: var(--sub); font-size: 0.76rem; }
+  .entity li.added .fname::after {
+    content: "+";
+    color: var(--good);
+    margin-left: 5px;
+    font-weight: 700;
+  }
+
+  /* Barker 표기: # 기본키, * 필수(mandatory), o 선택(optional) */
+  .mark { font-weight: 700; margin-right: 5px; display: inline-block; width: 0.8em; }
+  .mark.pk { color: var(--accent); }
+  .mark.mand { color: var(--ink); }
+  .mark.opt { color: var(--muted); font-weight: 400; }
+
+  .entity.dead {
+    border-style: dashed;
+    border-color: var(--muted);
+    opacity: 0.88;
+  }
+  .entity.dead .head {
+    background: var(--muted-soft);
+    color: var(--muted);
+    border-bottom-color: var(--muted);
+  }
+  .entity.dead li .ftype { color: var(--muted); }
+
+  .badge {
+    position: absolute;
+    font-family: ui-monospace, monospace;
+    font-size: 0.68rem;
+    padding: 2px 7px;
+    border-radius: 20px;
+    letter-spacing: 0.02em;
+  }
+  .badge.warn { background: var(--warn-soft); color: var(--warn); }
+  .badge.muted { background: var(--muted-soft); color: var(--muted); }
+
+  .edge-label {
+    position: absolute;
+    font-family: ui-monospace, monospace;
+    font-size: 0.68rem;
+    color: var(--sub);
+    background: var(--panel);
+    padding: 0 4px;
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    font-size: 0.82rem;
+    color: var(--sub);
+    padding-top: 4px;
+  }
+  .legend .swatch { display: inline-flex; align-items: center; gap: 7px; }
+  .legend svg { flex-shrink: 0; }
+
+  /* ---------- 차이점 리스트 ---------- */
+
+  .diff-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .diff-item {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 16px;
+    padding: 12px 16px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--warn);
+    border-radius: 4px;
+    font-size: 0.9rem;
+  }
+  .diff-item .k {
+    font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+    font-size: 0.78rem;
+    color: var(--warn);
+    font-weight: 700;
+  }
+  .diff-item .v { color: var(--ink); }
+  .diff-item code {
+    font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+    background: var(--panel-2);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.85em;
+  }
+
+  footer.note {
+    font-size: 0.82rem;
+    color: var(--sub);
+    border-top: 1px solid var(--line);
+    padding-top: 16px;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .entity, .concept-card { transition: transform 0.15s ease, box-shadow 0.15s ease; }
+  }
+</style>
+
+<div class="page">
+
+  <header class="hero">
+    <span class="eyebrow">Y-SAFE / 청년야호 — backend/app/db.py 기준 실제 구현 스냅샷</span>
+    <h1>데이터베이스 개념 스키마 &amp; ERD</h1>
+    <p class="hero-sub">
+      docs/08_db_schema.md의 설계안이 아니라, 지금 실제로 <code style="font-family:ui-monospace,monospace">backend/app/db.py</code>에 SQLAlchemy로
+      정의되어 동작 중인 테이블 7개를 그대로 그린 도식입니다. 개발 단계는 SQLite, <code style="font-family:ui-monospace,monospace">DATABASE_URL</code> 환경변수만 바꾸면 PostgreSQL로 전환되도록 설계되어 있습니다.
+    </p>
+  </header>
+
+  <section>
+    <h2>1. 개념 스키마 <span class="tag">— 테이블이 맡은 역할</span></h2>
+    <p class="lead">7개 테이블을 실제 쓰이는 목적 기준으로 4개 그룹으로 묶었습니다.</p>
+
+    <div class="concept-groups">
+      <div class="concept-card">
+        <span class="group-label">인증</span>
+        <h3>users</h3>
+        <p>이메일/비밀번호 기반 회원. 생년월일은 자기기재이며 본인인증 전까지 <code>is_age_verified</code>는 항상 false.</p>
+      </div>
+
+      <div class="concept-card">
+        <span class="group-label">시민 진단</span>
+        <h3>citizen_sessions</h3>
+        <p>앱에서 발생한 진단 1회 = 1행. 로그인 사용자면 user_id가 채워지고, 익명 진단은 null. 설명문(Layer4)도 여기 캐싱됨.</p>
+      </div>
+
+      <div class="concept-card">
+        <span class="group-label">정책 / 최적화</span>
+        <h3>policy_catalog</h3>
+        <p>부산시 청년정책 카탈로그(청년월세지원 등). 자격조건은 JSON 룰로 저장.</p>
+      </div>
+
+      <div class="concept-card">
+        <span class="group-label">정책 / 최적화</span>
+        <h3>assignment_results</h3>
+        <p>Layer3 LP 배정 배치 결과. 사람 1명당 최대 2개 정책까지 배정 가능.</p>
+      </div>
+
+      <div class="concept-card">
+        <span class="group-label">정책 / 최적화</span>
+        <h3>bandit_state</h3>
+        <p>정책별 Thompson Sampling 베타분포 파라미터(α, β). 정책 1개당 1행.</p>
+      </div>
+
+      <div class="concept-card">
+        <span class="group-label">감사</span>
+        <h3>data_profiling_reports</h3>
+        <p>Layer0 profiler.py 출력을 통째로 JSON 저장 — "당일 5분 안에 확인" 워크플로우의 근거 기록용.</p>
+      </div>
+
+      <div class="concept-card dead">
+        <span class="group-label">정의되어 있으나 미사용</span>
+        <h3>kcb_clean</h3>
+        <p>docs/08 설계 당시의 Layer0~2 통합 결과 테이블. 실제로는 이 테이블에 쓰거나 읽는 코드가 backend 전체에 단 한 줄도 없음(파이프라인 결과는 parquet + 인메모리 PipelineStore로 흐름).</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>2. ERD <span class="tag">— Barker 표기법</span></h2>
+    <p class="lead">
+      관계선의 까마귀발(crow's foot)·원(o)·막대(|) 조합은 실제 DB 제약이 아니라 <b>비즈니스 규칙 기준</b>으로 표기했습니다
+      (실제로는 아래 모두 <code style="font-family:ui-monospace,monospace">ForeignKey()</code> 제약이 없는 논리적 연결 — 3번 섹션 참고).
+      속성 앞 <span style="color:var(--accent); font-weight:700;">#</span>=기본키, <b>*</b>=필수(NOT NULL 의도), <span style="color:var(--muted);">o</span>=선택(nullable) 입니다.
+    </p>
+
+    <div class="erd-scroll">
+      <div class="erd-canvas">
+        <svg width="1120" height="860" viewBox="0 0 1120 860">
+          <!-- ============ REL 1: users — citizen_sessions ============ -->
+          <path d="M 290 150 L 430 150" fill="none" stroke="var(--line-strong)" stroke-width="1.6"></path>
+          <!-- users 쪽: optional-one (o|) : 세션 1건은 유저 0개 또는 1개(익명 허용)에 연결 -->
+          <circle cx="300" cy="150" r="4.5" fill="var(--panel)" stroke="var(--line-strong)" stroke-width="1.6"></circle>
+          <line x1="309" y1="144" x2="309" y2="156" stroke="var(--line-strong)" stroke-width="1.6"></line>
+          <!-- citizen_sessions 쪽: optional-many (o<) : 유저 1명은 세션 0개~여러개 -->
+          <circle cx="405" cy="150" r="4.5" fill="var(--panel)" stroke="var(--line-strong)" stroke-width="1.6"></circle>
+          <path d="M 430 150 L 415 141 M 430 150 L 415 159" fill="none" stroke="var(--line-strong)" stroke-width="1.6"></path>
+
+          <!-- ============ REL 2: policy_catalog — assignment_results ============ -->
+          <path d="M 290 420 L 430 420" fill="none" stroke="var(--line-strong)" stroke-width="1.6"></path>
+          <!-- policy_catalog 쪽: mandatory-one (||) : 배정 1건은 반드시 정책 1개 -->
+          <line x1="300" y1="414" x2="300" y2="426" stroke="var(--line-strong)" stroke-width="1.6"></line>
+          <line x1="308" y1="414" x2="308" y2="426" stroke="var(--line-strong)" stroke-width="1.6"></line>
+          <!-- assignment_results 쪽: optional-many (o<) : 정책 1개는 배정 0건~여러건 -->
+          <circle cx="405" cy="420" r="4.5" fill="var(--panel)" stroke="var(--line-strong)" stroke-width="1.6"></circle>
+          <path d="M 430 420 L 415 411 M 430 420 L 415 429" fill="none" stroke="var(--line-strong)" stroke-width="1.6"></path>
+
+          <!-- ============ REL 3: policy_catalog — bandit_state (elbow routed above row) ============ -->
+          <path d="M 165 340 L 165 300 L 965 300 L 965 340" fill="none" stroke="var(--line-strong)" stroke-width="1.6"></path>
+          <!-- policy_catalog 쪽(수직 구간): mandatory-one (||) : 밴딧상태 1건은 반드시 정책 1개 -->
+          <line x1="159" y1="333" x2="171" y2="333" stroke="var(--line-strong)" stroke-width="1.6"></line>
+          <line x1="159" y1="325" x2="171" y2="325" stroke="var(--line-strong)" stroke-width="1.6"></line>
+          <!-- bandit_state 쪽: optional-one (o|) : 정책 1개는 밴딧상태 0개 또는 1개(아직 시뮬레이션 전일 수 있음) -->
+          <circle cx="965" cy="308" r="4.5" fill="var(--panel)" stroke="var(--line-strong)" stroke-width="1.6"></circle>
+          <line x1="959" y1="316" x2="971" y2="316" stroke="var(--line-strong)" stroke-width="1.6"></line>
+
+          <!-- ============ kcb_clean -> assignment_results : Barker 표기 대상 아님(비공식 참조) ============ -->
+          <path d="M 565 610 L 565 520" fill="none" stroke="var(--muted)" stroke-width="1.6" stroke-dasharray="2 4"></path>
+        </svg>
+
+        <!-- 관계 서술어(verb phrase) 라벨 -->
+        <div class="edge-label" style="left:333px; top:135px;">세션을 남긴다</div>
+        <div class="edge-label" style="left:325px; top:405px;">배정받는다</div>
+        <div class="edge-label" style="left:530px; top:288px;">학습상태를 가짐</div>
+        <div class="edge-label" style="left:572px; top:560px; color:var(--muted);">person_id · Barker 대상 아님(미사용)</div>
+
+        <!-- users -->
+        <div class="entity" style="left:40px; top:50px; width:250px;">
+          <div class="head">users</div>
+          <ul>
+            <li><span class="fname"><span class="mark pk">#</span>user_id</span><span class="ftype">STRING</span></li>
+            <li><span class="fname"><span class="mark mand">*</span>email</span><span class="ftype">UNIQUE</span></li>
+            <li><span class="fname"><span class="mark mand">*</span>password_hash</span><span class="ftype">STRING</span></li>
+            <li><span class="fname"><span class="mark mand">*</span>birthdate</span><span class="ftype">STRING</span></li>
+            <li><span class="fname"><span class="mark opt">o</span>dong_code</span><span class="ftype">STRING</span></li>
+            <li><span class="fname"><span class="mark opt">o</span>is_age_verified</span><span class="ftype">BOOL</span></li>
+            <li><span class="fname"><span class="mark mand">*</span>created_at</span><span class="ftype">DATETIME</span></li>
+          </ul>
+        </div>
+        <div class="badge good" style="left:270px; top:38px; background:var(--good-soft); color:var(--good);">docs/08엔 없음(신규)</div>
+
+        <!-- citizen_sessions -->
+        <div class="entity" style="left:430px; top:50px; width:270px;">
+          <div class="head">citizen_sessions</div>
+          <ul>
+            <li><span class="fname"><span class="mark pk">#</span>session_id</span><span class="ftype">STRING</span></li>
+            <li class="added"><span class="fname"><span class="mark opt">o</span>user_id</span><span class="ftype">STRING</span></li>
+            <li><span class="fname"><span class="mark mand">*</span>input_payload</span><span class="ftype">JSON</span></li>
+            <li><span class="fname"><span class="mark mand">*</span>diagnosis_result</span><span class="ftype">JSON</span></li>
+            <li class="added"><span class="fname"><span class="mark opt">o</span>explanation_text</span><span class="ftype">STRING</span></li>
+            <li class="added"><span class="fname"><span class="mark opt">o</span>explanation_is_llm</span><span class="ftype">BOOL</span></li>
+            <li><span class="fname"><span class="mark mand">*</span>created_at</span><span class="ftype">DATETIME</span></li>
+          </ul>
+        </div>
+        <div class="badge warn" style="left:700px; top:38px;">+3 컬럼(docs 대비)</div>
+
+        <!-- data_profiling_reports -->
+        <div class="entity" style="left:840px; top:50px; width:240px;">
+          <div class="head">data_profiling_reports</div>
+          <ul>
+            <li><span class="fname"><span class="mark pk">#</span>id</span><span class="ftype">INT</span></li>
+            <li><span class="fname"><span class="mark mand">*</span>run_at</span><span class="ftype">DATETIME</span></li>
+            <li><span class="fname"><span class="mark mand">*</span>report</span><span class="ftype">JSON</span></li>
+          </ul>
+        </div>
+
+        <!-- policy_catalog -->
+        <div class="entity" style="left:40px; top:340px; width:250px;">
+          <div class="head">policy_catalog</div>
+          <ul>
+            <li><span class="fname"><span class="mark pk">#</span>policy_id</span><span class="ftype">INT</span></li>
+            <li><span class="fname"><span class="mark mand">*</span>name</span><span class="ftype">STRING</span></li>
+            <li><span class="fname"><span class="mark mand">*</span>eligibility_rule</span><span class="ftype">JSON</span></li>
+            <li><span class="fname"><span class="mark mand">*</span>unit_cost</span><span class="ftype">INT</span></li>
+            <li><span class="fname"><span class="mark mand">*</span>budget_cap</span><span class="ftype">INT</span></li>
+          </ul>
+        </div>
+
+        <!-- assignment_results -->
+        <div class="entity" style="left:430px; top:340px; width:270px;">
+          <div class="head">assignment_results</div>
+          <ul>
+            <li><span class="fname"><span class="mark pk">#</span>id</span><span class="ftype">INT</span></li>
+            <li><span class="fname"><span class="mark mand">*</span>person_id</span><span class="ftype">STRING</span></li>
+            <li><span class="fname"><span class="mark mand">*</span>policy_id</span><span class="ftype">INT</span></li>
+            <li class="added"><span class="fname"><span class="mark mand">*</span>delta_risk</span><span class="ftype">FLOAT</span></li>
+            <li class="added"><span class="fname"><span class="mark mand">*</span>eligibility_confidence</span><span class="ftype">STRING</span></li>
+            <li><span class="fname"><span class="mark mand">*</span>assigned_at</span><span class="ftype">DATETIME</span></li>
+          </ul>
+        </div>
+        <div class="badge warn" style="left:700px; top:328px;">+2 컬럼(docs 대비)</div>
+
+        <!-- bandit_state -->
+        <div class="entity" style="left:840px; top:340px; width:240px;">
+          <div class="head">bandit_state</div>
+          <ul>
+            <li><span class="fname"><span class="mark pk">#</span>policy_id</span><span class="ftype">INT</span></li>
+            <li><span class="fname"><span class="mark mand">*</span>alpha</span><span class="ftype">FLOAT</span></li>
+            <li><span class="fname"><span class="mark mand">*</span>beta</span><span class="ftype">FLOAT</span></li>
+            <li><span class="fname"><span class="mark mand">*</span>updated_at</span><span class="ftype">DATETIME</span></li>
+          </ul>
+        </div>
+
+        <!-- kcb_clean (dead) -->
+        <div class="entity dead" style="left:430px; top:610px; width:270px;">
+          <div class="head">kcb_clean</div>
+          <ul>
+            <li><span class="fname"><span class="mark pk">#</span>person_id</span><span class="ftype">STRING</span></li>
+            <li><span class="fname"><span class="mark opt">o</span>dong_code</span><span class="ftype">STRING</span></li>
+            <li><span class="fname"><span class="mark opt">o</span>sigungu_code</span><span class="ftype">STRING</span></li>
+            <li><span class="fname"><span class="mark opt">o</span>domain_indices</span><span class="ftype">JSON</span></li>
+            <li><span class="fname"><span class="mark opt">o</span>cluster_membership</span><span class="ftype">JSON</span></li>
+            <li><span class="fname"><span class="mark opt">o</span>hazard_months</span><span class="ftype">FLOAT ✕</span></li>
+            <li><span class="fname"><span class="mark opt">o</span>shap_top3</span><span class="ftype">JSON</span></li>
+            <li><span class="fname"><span class="mark mand">*</span>created_at</span><span class="ftype">DATETIME</span></li>
+          </ul>
+        </div>
+        <div class="badge muted" style="left:715px; top:598px;">읽기/쓰기 코드 0줄</div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span class="swatch"><svg width="34" height="14" viewBox="0 0 34 14"><line x1="0" y1="7" x2="34" y2="7" stroke="var(--line-strong)" stroke-width="1.6"></line><line x1="10" y1="2" x2="10" y2="12" stroke="var(--line-strong)" stroke-width="1.6"></line><line x1="17" y1="2" x2="17" y2="12" stroke="var(--line-strong)" stroke-width="1.6"></line></svg> 반드시 하나 (mandatory one)</span>
+      <span class="swatch"><svg width="34" height="14" viewBox="0 0 34 14"><line x1="0" y1="7" x2="34" y2="7" stroke="var(--line-strong)" stroke-width="1.6"></line><circle cx="10" cy="7" r="4" fill="var(--panel)" stroke="var(--line-strong)" stroke-width="1.6"></circle><line x1="19" y1="2" x2="19" y2="12" stroke="var(--line-strong)" stroke-width="1.6"></line></svg> 0 또는 1 (optional one)</span>
+      <span class="swatch"><svg width="34" height="14" viewBox="0 0 34 14"><line x1="0" y1="7" x2="15" y2="7" stroke="var(--line-strong)" stroke-width="1.6"></line><line x1="10" y1="2" x2="10" y2="12" stroke="var(--line-strong)" stroke-width="1.6"></line><path d="M 34 7 L 20 2 M 34 7 L 20 12" fill="none" stroke="var(--line-strong)" stroke-width="1.6"></path></svg> 하나 이상(mandatory many)</span>
+      <span class="swatch"><svg width="34" height="14" viewBox="0 0 34 14"><line x1="0" y1="7" x2="15" y2="7" stroke="var(--line-strong)" stroke-width="1.6"></line><circle cx="10" cy="7" r="4" fill="var(--panel)" stroke="var(--line-strong)" stroke-width="1.6"></circle><path d="M 34 7 L 20 2 M 34 7 L 20 12" fill="none" stroke="var(--line-strong)" stroke-width="1.6"></path></svg> 0개 이상(optional many)</span>
+      <span class="swatch"><span class="mark pk" style="margin:0;">#</span> 기본키 &nbsp; <span class="mark mand" style="margin:0;">*</span> 필수 &nbsp; <span class="mark opt" style="margin:0;">o</span> 선택</span>
+      <span class="swatch"><span style="color:var(--good); font-weight:700;">+</span> = docs/08에 없던 신규 컬럼</span>
+      <span class="swatch"><svg width="26" height="10"><line x1="0" y1="5" x2="26" y2="5" stroke="var(--muted)" stroke-width="1.6" stroke-dasharray="2 4"></line></svg> 비공식 참조 (Barker 표기 대상 아님)</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>3. 설계 문서 대비 실제 구현 차이</h2>
+    <div class="diff-list">
+      <div class="diff-item">
+        <span class="k">신규 테이블</span>
+        <span class="v"><code>users</code> 전체가 docs/08엔 없음 — 이후 로그인 기능이 추가되며 실제 구현에서 새로 생김.</span>
+      </div>
+      <div class="diff-item">
+        <span class="k">컬럼 추가</span>
+        <span class="v"><code>citizen_sessions.user_id / explanation_text / explanation_is_llm_generated</code>, <code>assignment_results.delta_risk / eligibility_confidence</code> — 문서 작성 이후 실제 기능(로그인 연동, 설명문 캐싱, LP 배정 근거 저장)이 붙으며 추가됨.</span>
+      </div>
+      <div class="diff-item">
+        <span class="k">죽은 테이블</span>
+        <span class="v"><code>kcb_clean</code>은 정의만 있고 backend 어디에서도 읽거나 쓰지 않음. <code>hazard_months</code> 컬럼은 Cox 생존분석이 비활성화(2026-07-08 결정)되며 사실상 죽은 필드가 됨 — 지금 위험 점수는 <code>risk_scores.parquet</code>의 <code>event_probability</code>로만 흐름.</span>
+      </div>
+      <div class="diff-item">
+        <span class="k">제약 완화</span>
+        <span class="v">docs/08 SQL은 <code>REFERENCES</code>로 외래키를 명시했지만, 실제 SQLAlchemy 테이블 정의엔 <code>ForeignKey()</code>가 전혀 없음 — 지금은 정합성을 DB가 아니라 애플리케이션 코드가 책임짐.</span>
+      </div>
+      <div class="diff-item">
+        <span class="k">DB 엔진</span>
+        <span class="v">2026-07-09 결정: 해커톤 전 단계는 PostgreSQL 대신 로컬 SQLite로 최소 구현. <code>DATABASE_URL</code>만 postgres 커넥션 문자열로 바꾸면 동일 코드 재사용 가능(JSON 컬럼은 Postgres에서 자동으로 JSONB로 전환).</span>
+      </div>
+    </div>
+  </section>
+
+  <footer class="note">
+    출처: <code style="font-family:ui-monospace,monospace">backend/app/db.py</code>(실제 구현), <code style="font-family:ui-monospace,monospace">docs/08_db_schema.md</code>(설계 문서) 대조 · 2026-07-11 기준
+  </footer>
+
+</div>

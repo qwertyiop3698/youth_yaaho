@@ -1,0 +1,804 @@
+{
+  "generated_at": "2026-07-11T05:23:28.716383+00:00",
+  "row_count": 1500,
+  "column_count": 46,
+  "columns": {
+    "성별": {
+      "group": "personal_info",
+      "dtype": "categorical",
+      "zero_meaning": "not_applicable",
+      "missing_strategy": "unknown_category",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 0,
+      "zero_pct": 0.0,
+      "unique_count": 2,
+      "unknown_category": {
+        "checked": true,
+        "unknown_count": 0,
+        "unknown_values": []
+      },
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "연령대": {
+      "group": "personal_info",
+      "dtype": "categorical",
+      "zero_meaning": "not_applicable",
+      "missing_strategy": "unknown_category",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 0,
+      "zero_pct": 0.0,
+      "unique_count": 13,
+      "unknown_category": {
+        "checked": false,
+        "reason": "코드북 미확정",
+        "unknown_values": []
+      },
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "직업군": {
+      "group": "personal_info",
+      "dtype": "categorical",
+      "zero_meaning": "not_applicable",
+      "missing_strategy": "unknown_category",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 0,
+      "zero_pct": 0.0,
+      "unique_count": 4,
+      "unknown_category": {
+        "checked": false,
+        "reason": "코드북 미확정",
+        "unknown_values": []
+      },
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "직업군상세": {
+      "group": "personal_info",
+      "dtype": "categorical",
+      "zero_meaning": "not_applicable",
+      "missing_strategy": "unknown_category",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 0,
+      "zero_pct": 0.0,
+      "unique_count": 5,
+      "unknown_category": {
+        "checked": false,
+        "reason": "코드북 미확정",
+        "unknown_values": []
+      },
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "거주지 시군구 코드": {
+      "group": "personal_info",
+      "dtype": "categorical",
+      "zero_meaning": "not_applicable",
+      "missing_strategy": "unknown_category",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 0,
+      "zero_pct": 0.0,
+      "unique_count": 6,
+      "unknown_category": {
+        "checked": false,
+        "reason": "코드북 미확정",
+        "unknown_values": []
+      },
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "근무지 시군구 코드": {
+      "group": "personal_info",
+      "dtype": "categorical",
+      "zero_meaning": "not_applicable",
+      "missing_strategy": "unknown_category",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 0,
+      "zero_pct": 0.0,
+      "unique_count": 6,
+      "unknown_category": {
+        "checked": false,
+        "reason": "코드북 미확정",
+        "unknown_values": []
+      },
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "거주지행정동": {
+      "group": "personal_info",
+      "dtype": "categorical",
+      "zero_meaning": "not_applicable",
+      "missing_strategy": "unknown_category",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 0,
+      "zero_pct": 0.0,
+      "unique_count": 15,
+      "unknown_category": {
+        "checked": false,
+        "reason": "코드북 미확정",
+        "unknown_values": []
+      },
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "근무지행정동": {
+      "group": "personal_info",
+      "dtype": "categorical",
+      "zero_meaning": "not_applicable",
+      "missing_strategy": "unknown_category",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 0,
+      "zero_pct": 0.0,
+      "unique_count": 15,
+      "unknown_category": {
+        "checked": false,
+        "reason": "코드북 미확정",
+        "unknown_values": []
+      },
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "추정가구원수": {
+      "group": "personal_info",
+      "dtype": "numeric",
+      "zero_meaning": "not_applicable",
+      "missing_strategy": "drop_column",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 0,
+      "zero_pct": 0.0,
+      "unique_count": 4,
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "추정월소득": {
+      "group": "income",
+      "dtype": "numeric",
+      "zero_meaning": "ambiguous",
+      "missing_strategy": "ambiguous_flag",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 0,
+      "zero_pct": 0.0,
+      "unique_count": 1115,
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "증빙연소득": {
+      "group": "income",
+      "dtype": "numeric",
+      "zero_meaning": "normal",
+      "missing_strategy": "flag_only",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 897,
+      "zero_pct": 0.598,
+      "unique_count": 602,
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "추정 연소득": {
+      "group": "income",
+      "dtype": "numeric",
+      "zero_meaning": "abnormal",
+      "missing_strategy": "median_impute",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 32,
+      "zero_pct": 0.0213,
+      "unique_count": 1435,
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "2년전 추정 연소득 금액": {
+      "group": "income",
+      "dtype": "numeric",
+      "zero_meaning": "abnormal",
+      "missing_strategy": "median_impute",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 0,
+      "zero_pct": 0.0,
+      "unique_count": 1419,
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "2년내 이직후 소득 증감액": {
+      "group": "income",
+      "dtype": "numeric",
+      "zero_meaning": "normal",
+      "missing_strategy": "none",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 962,
+      "zero_pct": 0.6413,
+      "unique_count": 516,
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "총자산평가금액(주택)": {
+      "group": "asset_housing",
+      "dtype": "numeric",
+      "zero_meaning": "abnormal",
+      "missing_strategy": "regional_median_impute",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 0,
+      "zero_pct": 0.0,
+      "unique_count": 1462,
+      "known_sentinel": {
+        "checked": true,
+        "hits": {
+          "-99999999": 31
+        }
+      },
+      "statistical_outlier": {
+        "checked": true,
+        "threshold": 79411250.0,
+        "candidate_count": 31,
+        "candidates": [
+          -99999999.0
+        ]
+      },
+      "needs_human_review": true,
+      "review_reasons": [
+        "known sentinel 값 발견",
+        "통계적 이상치(IQR) 후보 발견"
+      ]
+    },
+    "순자산평가금액(주택)": {
+      "group": "asset_housing",
+      "dtype": "numeric",
+      "zero_meaning": "abnormal",
+      "missing_strategy": "regional_median_impute",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 0,
+      "zero_pct": 0.0,
+      "unique_count": 1471,
+      "known_sentinel": {
+        "checked": true,
+        "hits": {
+          "-99999999": 18
+        }
+      },
+      "statistical_outlier": {
+        "checked": true,
+        "threshold": 54228500.0,
+        "candidate_count": 18,
+        "candidates": [
+          -99999999.0
+        ]
+      },
+      "needs_human_review": true,
+      "review_reasons": [
+        "known sentinel 값 발견",
+        "통계적 이상치(IQR) 후보 발견"
+      ]
+    },
+    "자가거주여부": {
+      "group": "asset_housing",
+      "dtype": "categorical",
+      "zero_meaning": "not_applicable",
+      "missing_strategy": "unknown_category",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 1032,
+      "zero_pct": 0.688,
+      "unique_count": 2,
+      "unknown_category": {
+        "checked": false,
+        "reason": "코드북 미확정",
+        "unknown_values": []
+      },
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "현 거주지의 아파트여부": {
+      "group": "asset_housing",
+      "dtype": "categorical",
+      "zero_meaning": "normal",
+      "missing_strategy": "none",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 687,
+      "zero_pct": 0.458,
+      "unique_count": 2,
+      "unknown_category": {
+        "checked": false,
+        "reason": "코드북 미확정",
+        "unknown_values": []
+      },
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "현 거주지의 매매가(국토부 실거래가) 또는 공시가격": {
+      "group": "asset_housing",
+      "dtype": "numeric",
+      "zero_meaning": "abnormal",
+      "missing_strategy": "regional_median_impute",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 0,
+      "zero_pct": 0.0,
+      "unique_count": 1431,
+      "known_sentinel": {
+        "checked": true,
+        "hits": {
+          "-99999999": 37
+        }
+      },
+      "statistical_outlier": {
+        "checked": true,
+        "threshold": 102154250.0,
+        "candidate_count": 0,
+        "candidates": []
+      },
+      "needs_human_review": true,
+      "review_reasons": [
+        "known sentinel 값 발견"
+      ]
+    },
+    "차량보유(국산/수입)": {
+      "group": "asset_housing",
+      "dtype": "categorical",
+      "zero_meaning": "normal",
+      "missing_strategy": "unknown_category",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 832,
+      "zero_pct": 0.5547,
+      "unique_count": 3,
+      "unknown_category": {
+        "checked": false,
+        "reason": "코드북 미확정",
+        "unknown_values": []
+      },
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "추정 LTV": {
+      "group": "estimated_model",
+      "dtype": "numeric",
+      "zero_meaning": "normal",
+      "missing_strategy": "none",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 1241,
+      "zero_pct": 0.8273,
+      "unique_count": 80,
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "추정DTI": {
+      "group": "estimated_model",
+      "dtype": "numeric",
+      "zero_meaning": "normal",
+      "missing_strategy": "none",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 646,
+      "zero_pct": 0.4307,
+      "unique_count": 483,
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "신용평점": {
+      "group": "estimated_model",
+      "dtype": "numeric",
+      "zero_meaning": "conditional",
+      "missing_strategy": "conditional_thin_filer",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 247,
+      "zero_pct": 0.1647,
+      "unique_count": 481,
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "총대출건수": {
+      "group": "loan_card_delinquency",
+      "dtype": "numeric",
+      "zero_meaning": "normal",
+      "missing_strategy": "none",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 367,
+      "zero_pct": 0.2447,
+      "unique_count": 7,
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "신용대출-총대출약정액": {
+      "group": "loan_card_delinquency",
+      "dtype": "numeric",
+      "zero_meaning": "normal",
+      "missing_strategy": "none",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 877,
+      "zero_pct": 0.5847,
+      "unique_count": 608,
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "신용대출-총대출잔액": {
+      "group": "loan_card_delinquency",
+      "dtype": "numeric",
+      "zero_meaning": "normal",
+      "missing_strategy": "none",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 877,
+      "zero_pct": 0.5847,
+      "unique_count": 596,
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "주택담보대출-총대출약정액": {
+      "group": "loan_card_delinquency",
+      "dtype": "numeric",
+      "zero_meaning": "normal",
+      "missing_strategy": "none",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 1241,
+      "zero_pct": 0.8273,
+      "unique_count": 260,
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "주택담보대출-총대출잔액": {
+      "group": "loan_card_delinquency",
+      "dtype": "numeric",
+      "zero_meaning": "normal",
+      "missing_strategy": "none",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 1241,
+      "zero_pct": 0.8273,
+      "unique_count": 259,
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "정책자금대출-총대출약정액": {
+      "group": "loan_card_delinquency",
+      "dtype": "numeric",
+      "zero_meaning": "normal",
+      "missing_strategy": "none",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 1342,
+      "zero_pct": 0.8947,
+      "unique_count": 158,
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "정책자금대출-총대출잔액": {
+      "group": "loan_card_delinquency",
+      "dtype": "numeric",
+      "zero_meaning": "normal",
+      "missing_strategy": "none",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 1342,
+      "zero_pct": 0.8947,
+      "unique_count": 156,
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "총 대출 상환금액 (최근 12개월)": {
+      "group": "loan_card_delinquency",
+      "dtype": "numeric",
+      "zero_meaning": "normal",
+      "missing_strategy": "none",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 646,
+      "zero_pct": 0.4307,
+      "unique_count": 692,
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "최근 12개월 신용카드소비금액": {
+      "group": "loan_card_delinquency",
+      "dtype": "numeric",
+      "zero_meaning": "normal",
+      "missing_strategy": "none",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 32,
+      "zero_pct": 0.0213,
+      "unique_count": 1398,
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "최근 12개월 체크카드소비금액": {
+      "group": "loan_card_delinquency",
+      "dtype": "numeric",
+      "zero_meaning": "normal",
+      "missing_strategy": "none",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 32,
+      "zero_pct": 0.0213,
+      "unique_count": 1268,
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "최근 12개월 일시불이용금액": {
+      "group": "loan_card_delinquency",
+      "dtype": "numeric",
+      "zero_meaning": "normal",
+      "missing_strategy": "none",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 32,
+      "zero_pct": 0.0213,
+      "unique_count": 1322,
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "최근 12개월 할부이용금액": {
+      "group": "loan_card_delinquency",
+      "dtype": "numeric",
+      "zero_meaning": "normal",
+      "missing_strategy": "none",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 32,
+      "zero_pct": 0.0213,
+      "unique_count": 1180,
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "최근 12개월 현금서비스이용금액": {
+      "group": "loan_card_delinquency",
+      "dtype": "numeric",
+      "zero_meaning": "normal",
+      "missing_strategy": "none",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 32,
+      "zero_pct": 0.0213,
+      "unique_count": 1160,
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "대출연체건수": {
+      "group": "loan_card_delinquency",
+      "dtype": "numeric",
+      "zero_meaning": "normal",
+      "missing_strategy": "none",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 1287,
+      "zero_pct": 0.858,
+      "unique_count": 6,
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "카드연체건수": {
+      "group": "loan_card_delinquency",
+      "dtype": "numeric",
+      "zero_meaning": "normal",
+      "missing_strategy": "none",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 1381,
+      "zero_pct": 0.9207,
+      "unique_count": 6,
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "연체일수": {
+      "group": "loan_card_delinquency",
+      "dtype": "numeric",
+      "zero_meaning": "normal",
+      "missing_strategy": "none",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 1287,
+      "zero_pct": 0.858,
+      "unique_count": 31,
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "대출연체금액": {
+      "group": "loan_card_delinquency",
+      "dtype": "numeric",
+      "zero_meaning": "normal",
+      "missing_strategy": "none",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 1287,
+      "zero_pct": 0.858,
+      "unique_count": 210,
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "카드연체금액": {
+      "group": "loan_card_delinquency",
+      "dtype": "numeric",
+      "zero_meaning": "normal",
+      "missing_strategy": "none",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 1287,
+      "zero_pct": 0.858,
+      "unique_count": 198,
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "Thin Filer 여부": {
+      "group": "other",
+      "dtype": "categorical",
+      "zero_meaning": "normal",
+      "missing_strategy": "none",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 1253,
+      "zero_pct": 0.8353,
+      "unique_count": 2,
+      "unknown_category": {
+        "checked": false,
+        "reason": "코드북 미확정",
+        "unknown_values": []
+      },
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "파산, 개인회생 신청 여부": {
+      "group": "other",
+      "dtype": "categorical",
+      "zero_meaning": "normal",
+      "missing_strategy": "none",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 1451,
+      "zero_pct": 0.9673,
+      "unique_count": 2,
+      "unknown_category": {
+        "checked": false,
+        "reason": "코드북 미확정",
+        "unknown_values": []
+      },
+      "needs_human_review": false,
+      "review_reasons": []
+    },
+    "2년내 현거주지평균실거래가": {
+      "group": "asset_housing",
+      "dtype": "numeric",
+      "zero_meaning": "not_applicable",
+      "missing_strategy": "regional_median_impute",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 0,
+      "zero_pct": 0.0,
+      "unique_count": 1396,
+      "known_sentinel": {
+        "checked": true,
+        "hits": {
+          "-99999999": 36
+        }
+      },
+      "statistical_outlier": {
+        "checked": true,
+        "threshold": 105868000.0,
+        "candidate_count": 0,
+        "candidates": []
+      },
+      "needs_human_review": true,
+      "review_reasons": [
+        "known sentinel 값 발견"
+      ]
+    },
+    "2년내 현거주지평균전세거래가": {
+      "group": "asset_housing",
+      "dtype": "numeric",
+      "zero_meaning": "not_applicable",
+      "missing_strategy": "regional_median_impute",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 0,
+      "zero_pct": 0.0,
+      "unique_count": 1400,
+      "known_sentinel": {
+        "checked": true,
+        "hits": {
+          "-99999999": 31
+        }
+      },
+      "statistical_outlier": {
+        "checked": true,
+        "threshold": 63898500.0,
+        "candidate_count": 31,
+        "candidates": [
+          -99999999.0
+        ]
+      },
+      "needs_human_review": true,
+      "review_reasons": [
+        "known sentinel 값 발견",
+        "통계적 이상치(IQR) 후보 발견"
+      ]
+    },
+    "2년내 직장명이력건수": {
+      "group": "life_pattern",
+      "dtype": "numeric",
+      "zero_meaning": "normal",
+      "missing_strategy": "none",
+      "row_count": 1500,
+      "null_count": 0,
+      "null_pct": 0.0,
+      "zero_count": 959,
+      "zero_pct": 0.6393,
+      "unique_count": 5,
+      "needs_human_review": false,
+      "review_reasons": []
+    }
+  },
+  "missing_from_data": [],
+  "unmapped_in_data": [],
+  "needs_human_review": [
+    "총자산평가금액(주택)",
+    "순자산평가금액(주택)",
+    "현 거주지의 매매가(국토부 실거래가) 또는 공시가격",
+    "2년내 현거주지평균실거래가",
+    "2년내 현거주지평균전세거래가"
+  ]
+}
