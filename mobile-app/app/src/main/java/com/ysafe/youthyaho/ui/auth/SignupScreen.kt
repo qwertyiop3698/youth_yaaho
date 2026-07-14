@@ -21,6 +21,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ysafe.youthyaho.ui.common.BUSAN_DISTRICT_OPTIONS
+import com.ysafe.youthyaho.ui.common.ChipSingleSelect
 import kotlinx.coroutines.delay
 
 private const val SUCCESS_MESSAGE_DELAY_MS = 1200L
@@ -96,13 +98,13 @@ fun SignupScreen(
             modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
         )
 
-        OutlinedTextField(
-            value = uiState.dongCode,
-            onValueChange = viewModel::onDongCodeChange,
-            label = { Text("거주 행정동 코드 (선택)") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+        ChipSingleSelect(
+            label = "거주 지역 (구/군, 선택)",
+            options = BUSAN_DISTRICT_OPTIONS,
+            selected = uiState.dongCode.ifBlank { null },
+            onSelect = viewModel::onDongCodeChange,
+            modifier = Modifier.padding(top = 12.dp),
+            wrap = true,
         )
 
         uiState.errorMessage?.let { message ->

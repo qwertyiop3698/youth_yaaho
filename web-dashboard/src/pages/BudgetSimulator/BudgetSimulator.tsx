@@ -73,13 +73,13 @@ export function BudgetSimulator() {
       <QueryState isLoading={catalogQuery.isLoading} isError={catalogQuery.isError} error={catalogQuery.error}>
         {catalogQuery.data?.ready && budgets ? (
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <div className="flex flex-col gap-4 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-col gap-4 rounded-lg border border-brand-border bg-white p-5 shadow-sm">
               <h3 className="text-sm font-medium text-gray-500">정책별 예산 배정 상한</h3>
               {catalogQuery.data.policies.map((policy) => (
                 <div key={policy.name}>
                   <label className="flex items-center justify-between text-sm text-gray-700">
                     <span>{policy.name}</span>
-                    <span className="font-medium text-gray-900">{formatEok(budgets[policy.name] ?? 0)}</span>
+                    <span className="font-medium text-brand-ink">{formatEok(budgets[policy.name] ?? 0)}</span>
                   </label>
                   <input
                     type="range"
@@ -129,7 +129,7 @@ function SimulationResult({ isLoading, isError, error, data }: SimulationResultP
   }
   if (data.skipped) {
     return (
-      <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-600">
+      <div className="rounded-lg border border-brand-border bg-white p-4 text-sm text-gray-600">
         계산할 수 없습니다: {data.reason}
       </div>
     )

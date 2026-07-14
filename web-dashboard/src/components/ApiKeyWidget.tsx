@@ -48,7 +48,7 @@ export function ApiKeyWidget() {
       />
       <button
         type="submit"
-        className="rounded bg-gray-900 px-3 py-1 text-sm text-white hover:bg-gray-700"
+        className="rounded bg-brand-blue px-3 py-1 text-sm text-white hover:bg-brand-blue-dark"
       >
         저장
       </button>

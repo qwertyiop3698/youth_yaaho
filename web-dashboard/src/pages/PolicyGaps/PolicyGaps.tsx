@@ -19,10 +19,10 @@ export function PolicyGaps() {
         <p className="mt-1 text-sm text-gray-500">위험점수 상위 + 아직 정책이 배정되지 않은 사람들</p>
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="rounded-lg border border-brand-border bg-white p-4 shadow-sm">
         <label className="flex items-center justify-between text-sm text-gray-600">
           <span>위험점수 기준선(risk_threshold)</span>
-          <span className="font-medium text-gray-900">{threshold.toFixed(2)}</span>
+          <span className="font-medium text-brand-ink">{threshold.toFixed(2)}</span>
         </label>
         <input
           type="range"
@@ -64,7 +64,7 @@ function PolicyGapsContent({ data }: { data: PolicyGapsReady }) {
         />
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <div className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
         <h3 className="mb-4 text-sm font-medium text-gray-500">
           사각지대 인원 목록 (최대 100건){data.person_ids.length > 0 && ` - ${data.person_ids.length}건`}
         </h3>
@@ -75,8 +75,8 @@ function PolicyGapsContent({ data }: { data: PolicyGapsReady }) {
             <table className="w-full text-left text-sm">
               <thead className="sticky top-0 bg-white text-gray-500">
                 <tr>
-                  <th className="border-b border-gray-200 py-2 pr-4">#</th>
-                  <th className="border-b border-gray-200 py-2">person_id</th>
+                  <th className="border-b border-brand-border py-2 pr-4">#</th>
+                  <th className="border-b border-brand-border py-2">person_id</th>
                 </tr>
               </thead>
               <tbody>

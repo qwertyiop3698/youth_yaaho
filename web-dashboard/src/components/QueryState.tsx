@@ -36,7 +36,7 @@ export function QueryState({ isLoading, isError, error, children }: QueryStatePr
 
 export function NotReadyBanner({ reason }: { reason: string }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-600">
+    <div className="rounded-lg border border-brand-border bg-white p-4 text-sm text-gray-600">
       아직 데이터가 준비되지 않았습니다: {reason}
     </div>
   )
