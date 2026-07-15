@@ -28,10 +28,12 @@ import com.ysafe.youthyaho.ui.result.ResultScreen
 import com.ysafe.youthyaho.ui.result.ResultViewModel
 import com.ysafe.youthyaho.ui.settings.SettingsScreen
 import com.ysafe.youthyaho.ui.settings.SettingsViewModel
+import com.ysafe.youthyaho.ui.splash.SplashScreen
 
 private const val SESSION_ID_ARG = "sessionId"
 
 sealed class Screen(val route: String) {
+    data object Splash : Screen("splash")
     data object Onboarding : Screen("onboarding")
     data object Login : Screen("login")
     data object Signup : Screen("signup")
@@ -55,9 +57,11 @@ sealed class Screen(val route: String) {
 }
 
 /**
- * docs/09 화면 순서: 온보딩 -> 정보입력 -> 진단결과 -> 정책추천 -> 설명문구 -> 히스토리
- * -> 설정. 로그인/회원가입은 온보딩의 "게스트/로그인 선택"에서 진입하는 보조 화면이다
- * (로그인은 선택 기능 - 게스트로도 정보입력부터 그대로 진행 가능).
+ * docs/09 화면 순서: 스플래시 -> 로그인 -> 온보딩 -> 정보입력 -> 진단결과 -> 정책추천
+ * -> 설명문구 -> 히스토리 -> 설정. 스플래시는 앱 실행 직후 로고만 잠깐 보여주고
+ * 로그인 화면으로 바로 넘어간다(popUpTo로 백스택 제거, 뒤로가기로 재진입 불가).
+ * 온보딩의 "게스트/로그인 선택"은 로그인 화면의 뒤로가기에서도 여전히 갈 수 있는
+ * 보조 화면이다(로그인은 선택 기능 - 게스트로도 정보입력부터 그대로 진행 가능).
  */
 @Composable
 fun YouthYahoNavHost(
@@ -67,7 +71,17 @@ fun YouthYahoNavHost(
     tokenStore: TokenStore,
     modifier: Modifier = Modifier,
 ) {
-    NavHost(navController = navController, startDestination = Screen.Onboarding.route, modifier = modifier) {
+    NavHost(navController = navController, startDestination = Screen.Splash.route, modifier = modifier) {
+        composable(Screen.Splash.route) {
+            SplashScreen(
+                onTimeout = {
+                    navController.navigate(Screen.Onboarding.route) {
+                        popUpTo(Screen.Splash.route) { inclusive = true }
+                    }
+                },
+            )
+        }
+
         composable(Screen.Onboarding.route) {
             OnboardingScreen(
                 onContinueAsGuest = {

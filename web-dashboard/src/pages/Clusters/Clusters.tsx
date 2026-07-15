@@ -48,7 +48,7 @@ function ClustersContent({ data }: { data: ClustersReady }) {
         <StatCard label="전체 인원(소프트 합)" value={totalPopulation.toFixed(0)} />
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <div className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
         <h3 className="mb-4 text-sm font-medium text-gray-500">클러스터별 도메인지수 프로파일(z-score)</h3>
         {radarData.length === 0 ? (
           <p className="text-sm text-gray-400">프로파일 데이터가 없습니다.</p>
@@ -106,18 +106,18 @@ function ClusterCard({ clusterKey, label, size, profile, color }: ClusterCardPro
   const topDomain = entries.length > 0 ? entries.reduce((a, b) => (b[1] > a[1] ? b : a)) : null
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="rounded-lg border border-brand-border bg-white p-4 shadow-sm">
       <div className="flex items-center gap-2">
         <span className="h-3 w-3 rounded-full" style={{ backgroundColor: color }} />
-        <p className="font-medium text-gray-900">{label ?? clusterKey}</p>
+        <p className="font-medium text-brand-ink">{label ?? clusterKey}</p>
       </div>
       <p className="mt-1 text-xs text-gray-400">{clusterKey}</p>
       <p className="mt-3 text-sm text-gray-600">
-        인원(소프트 합): <span className="font-medium text-gray-900">{size !== undefined ? size.toFixed(1) : '—'}</span>
+        인원(소프트 합): <span className="font-medium text-brand-ink">{size !== undefined ? size.toFixed(1) : '—'}</span>
       </p>
       {topDomain && (
         <p className="mt-1 text-sm text-gray-600">
-          대표 특성: <span className="font-medium text-gray-900">{topDomain[0]}</span> (z={topDomain[1].toFixed(2)})
+          대표 특성: <span className="font-medium text-brand-ink">{topDomain[0]}</span> (z={topDomain[1].toFixed(2)})
         </p>
       )}
     </div>

@@ -1,0 +1,322 @@
+{
+  "notes": [
+    {
+      "column": "성별",
+      "strategy": "unknown_category",
+      "message": "null 0건 + 코드북 밖 값 0건을 'unknown' 카테고리로 대체(최빈값 대체 아님, 편향 방지). 플래그: 성별_was_missing"
+    },
+    {
+      "column": "연령대",
+      "strategy": "unknown_category",
+      "message": "null 0건 + 코드북 밖 값 0건을 'unknown' 카테고리로 대체(최빈값 대체 아님, 편향 방지). 플래그: 연령대_was_missing"
+    },
+    {
+      "column": "직업군",
+      "strategy": "unknown_category",
+      "message": "null 0건 + 코드북 밖 값 0건을 'unknown' 카테고리로 대체(최빈값 대체 아님, 편향 방지). 플래그: 직업군_was_missing"
+    },
+    {
+      "column": "직업군상세",
+      "strategy": "unknown_category",
+      "message": "null 0건 + 코드북 밖 값 0건을 'unknown' 카테고리로 대체(최빈값 대체 아님, 편향 방지). 플래그: 직업군상세_was_missing"
+    },
+    {
+      "column": "거주지 시군구 코드",
+      "strategy": "unknown_category",
+      "message": "null 0건 + 코드북 밖 값 0건을 'unknown' 카테고리로 대체(최빈값 대체 아님, 편향 방지). 플래그: 거주지 시군구 코드_was_missing"
+    },
+    {
+      "column": "근무지 시군구 코드",
+      "strategy": "unknown_category",
+      "message": "null 0건 + 코드북 밖 값 0건을 'unknown' 카테고리로 대체(최빈값 대체 아님, 편향 방지). 플래그: 근무지 시군구 코드_was_missing"
+    },
+    {
+      "column": "거주지행정동",
+      "strategy": "unknown_category",
+      "message": "null 0건 + 코드북 밖 값 0건을 'unknown' 카테고리로 대체(최빈값 대체 아님, 편향 방지). 플래그: 거주지행정동_was_missing"
+    },
+    {
+      "column": "근무지행정동",
+      "strategy": "unknown_category",
+      "message": "null 0건 + 코드북 밖 값 0건을 'unknown' 카테고리로 대체(최빈값 대체 아님, 편향 방지). 플래그: 근무지행정동_was_missing"
+    },
+    {
+      "column": "추정가구원수",
+      "strategy": "drop_column",
+      "message": "명세상 열삭제 대상 컬럼 제거."
+    },
+    {
+      "column": "추정월소득",
+      "strategy": "ambiguous_flag",
+      "message": "0/null 0건을 median(2775.0)으로 잠정 대체 + 플래그 추정월소득_was_missing 추가. 결측/정상 여부가 불확실하므로 사람 확인 필요(needs_human_review).",
+      "changed_count": 0,
+      "before": {
+        "mean": 2789.845333333333,
+        "median": 2775.0
+      },
+      "after": {
+        "mean": 2789.845333333333,
+        "median": 2775.0
+      }
+    },
+    {
+      "column": "증빙연소득",
+      "strategy": "flag_only",
+      "message": "0값 897건은 정상(원본 유지) + 신호 컬럼 증빙연소득_증빙없음 추가."
+    },
+    {
+      "column": "추정 연소득",
+      "strategy": "median_impute",
+      "message": "이상값/결측 32건(<= 0)을 median(32118.5)으로 대체 + 플래그 추정 연소득_was_missing 추가.",
+      "changed_count": 32,
+      "before": {
+        "mean": 31422.702666666668,
+        "median": 31853.0
+      },
+      "after": {
+        "mean": 32107.897333333334,
+        "median": 32118.5
+      }
+    },
+    {
+      "column": "2년전 추정 연소득 금액",
+      "strategy": "median_impute",
+      "message": "이상값/결측 40건(<= 0)을 median(30897.5)으로 대체 + 플래그 2년전 추정 연소득 금액_was_missing 추가.",
+      "changed_count": 40,
+      "before": {
+        "mean": 30924.974,
+        "median": 30616.5
+      },
+      "after": {
+        "mean": 31748.934,
+        "median": 30897.5
+      }
+    },
+    {
+      "column": "2년내 이직후 소득 증감액",
+      "strategy": "none",
+      "message": "0값=정상 비즈니스 값. 처리 없음."
+    },
+    {
+      "column": "총자산평가금액(주택)",
+      "strategy": "regional_median_impute",
+      "message": "sentinel 31건 + 이상 0값 0건 + null 0건을 지역(행정동->시군구->전체) median으로 대체 (join_scope=residence, dong_col=거주지행정동, sigungu_col=거주지 시군구 코드) + 플래그 총자산평가금액(주택)_was_missing 추가.",
+      "changed_count": 31,
+      "before": {
+        "mean": -1950167.06,
+        "median": 99169.5
+      },
+      "after": {
+        "mean": 118600.344,
+        "median": 100517.0
+      }
+    },
+    {
+      "column": "순자산평가금액(주택)",
+      "strategy": "regional_median_impute",
+      "message": "sentinel 18건 + 이상 0값 0건 + null 0건을 지역(행정동->시군구->전체) median으로 대체 (join_scope=residence, dong_col=거주지행정동, sigungu_col=거주지 시군구 코드) + 플래그 순자산평가금액(주택)_was_missing 추가.",
+      "changed_count": 18,
+      "before": {
+        "mean": -1121126.9853333333,
+        "median": 64096.5
+      },
+      "after": {
+        "mean": 79658.571,
+        "median": 64919.5
+      }
+    },
+    {
+      "column": "자가거주여부",
+      "strategy": "unknown_category",
+      "message": "null 0건 + 코드북 밖 값 0건을 'unknown' 카테고리로 대체(최빈값 대체 아님, 편향 방지). 플래그: 자가거주여부_was_missing"
+    },
+    {
+      "column": "현 거주지의 아파트여부",
+      "strategy": "none",
+      "message": "0값=정상 비즈니스 값. 처리 없음."
+    },
+    {
+      "column": "현 거주지의 매매가(국토부 실거래가) 또는 공시가격",
+      "strategy": "regional_median_impute",
+      "message": "sentinel 37건 + 이상 0값 0건 + null 0건을 지역(행정동->시군구->전체) median으로 대체 (join_scope=residence, dong_col=거주지행정동, sigungu_col=거주지 시군구 코드) + 플래그 현 거주지의 매매가(국토부 실거래가) 또는 공시가격_was_missing 추가.",
+      "changed_count": 37,
+      "before": {
+        "mean": -2331938.709333333,
+        "median": 109881.0
+      },
+      "after": {
+        "mean": 137637.078,
+        "median": 111841.5
+      }
+    },
+    {
+      "column": "차량보유(국산/수입)",
+      "strategy": "unknown_category",
+      "message": "null 0건 + 코드북 밖 값 0건을 'unknown' 카테고리로 대체(최빈값 대체 아님, 편향 방지). 플래그: 차량보유(국산/수입)_was_missing"
+    },
+    {
+      "column": "추정 LTV",
+      "strategy": "none",
+      "message": "0값=정상 비즈니스 값. 처리 없음."
+    },
+    {
+      "column": "추정DTI",
+      "strategy": "none",
+      "message": "0값=정상 비즈니스 값. 처리 없음."
+    },
+    {
+      "column": "신용평점",
+      "strategy": "conditional_thin_filer",
+      "message": "Thin Filer=1 구조적 결측 247건(원본 유지, 플래그만 추가) / Thin Filer=0 이상값 0건(median 대체) 분리 처리.",
+      "changed_count": 247,
+      "before": {
+        "mean": 539.9086666666667,
+        "median": 610.5
+      },
+      "after": {
+        "mean": 539.9086666666667,
+        "median": 610.5
+      }
+    },
+    {
+      "column": "총대출건수",
+      "strategy": "none",
+      "message": "0값=정상 비즈니스 값. 처리 없음."
+    },
+    {
+      "column": "신용대출-총대출약정액",
+      "strategy": "none",
+      "message": "0값=정상 비즈니스 값. 처리 없음."
+    },
+    {
+      "column": "신용대출-총대출잔액",
+      "strategy": "none",
+      "message": "0값=정상 비즈니스 값. 처리 없음."
+    },
+    {
+      "column": "주택담보대출-총대출약정액",
+      "strategy": "none",
+      "message": "0값=정상 비즈니스 값. 처리 없음."
+    },
+    {
+      "column": "주택담보대출-총대출잔액",
+      "strategy": "none",
+      "message": "0값=정상 비즈니스 값. 처리 없음."
+    },
+    {
+      "column": "정책자금대출-총대출약정액",
+      "strategy": "none",
+      "message": "0값=정상 비즈니스 값. 처리 없음."
+    },
+    {
+      "column": "정책자금대출-총대출잔액",
+      "strategy": "none",
+      "message": "0값=정상 비즈니스 값. 처리 없음."
+    },
+    {
+      "column": "총 대출 상환금액 (최근 12개월)",
+      "strategy": "none",
+      "message": "0값=정상 비즈니스 값. 처리 없음."
+    },
+    {
+      "column": "최근 12개월 신용카드소비금액",
+      "strategy": "none",
+      "message": "0값=정상 비즈니스 값. 처리 없음."
+    },
+    {
+      "column": "최근 12개월 체크카드소비금액",
+      "strategy": "none",
+      "message": "0값=정상 비즈니스 값. 처리 없음."
+    },
+    {
+      "column": "최근 12개월 일시불이용금액",
+      "strategy": "none",
+      "message": "0값=정상 비즈니스 값. 처리 없음."
+    },
+    {
+      "column": "최근 12개월 할부이용금액",
+      "strategy": "none",
+      "message": "0값=정상 비즈니스 값. 처리 없음."
+    },
+    {
+      "column": "최근 12개월 현금서비스이용금액",
+      "strategy": "none",
+      "message": "0값=정상 비즈니스 값. 처리 없음."
+    },
+    {
+      "column": "대출연체건수",
+      "strategy": "none",
+      "message": "0값=정상 비즈니스 값. 처리 없음."
+    },
+    {
+      "column": "카드연체건수",
+      "strategy": "none",
+      "message": "0값=정상 비즈니스 값. 처리 없음."
+    },
+    {
+      "column": "연체일수",
+      "strategy": "none",
+      "message": "0값=정상 비즈니스 값. 처리 없음."
+    },
+    {
+      "column": "대출연체금액",
+      "strategy": "none",
+      "message": "0값=정상 비즈니스 값. 처리 없음."
+    },
+    {
+      "column": "카드연체금액",
+      "strategy": "none",
+      "message": "0값=정상 비즈니스 값. 처리 없음."
+    },
+    {
+      "column": "Thin Filer 여부",
+      "strategy": "none",
+      "message": "0값=정상 비즈니스 값. 처리 없음."
+    },
+    {
+      "column": "파산, 개인회생 신청 여부",
+      "strategy": "none",
+      "message": "0값=정상 비즈니스 값. 처리 없음."
+    },
+    {
+      "column": "2년내 현거주지평균실거래가",
+      "strategy": "regional_median_impute",
+      "message": "sentinel 36건 + 이상 0값 0건 + null 0건을 지역(행정동->시군구->전체) median으로 대체 (join_scope=residence, dong_col=거주지행정동, sigungu_col=거주지 시군구 코드) + 플래그 2년내 현거주지평균실거래가_was_missing 추가.",
+      "changed_count": 36,
+      "before": {
+        "mean": -2267772.8133333335,
+        "median": 106242.0
+      },
+      "after": {
+        "mean": 135036.00533333333,
+        "median": 108181.5
+      }
+    },
+    {
+      "column": "2년내 현거주지평균전세거래가",
+      "strategy": "regional_median_impute",
+      "message": "sentinel 31건 + 이상 0값 0건 + null 0건을 지역(행정동->시군구->전체) median으로 대체 (join_scope=residence, dong_col=거주지행정동, sigungu_col=거주지 시군구 코드) + 플래그 2년내 현거주지평균전세거래가_was_missing 추가.",
+      "changed_count": 31,
+      "before": {
+        "mean": -1984770.288,
+        "median": 66876.0
+      },
+      "after": {
+        "mean": 83428.07733333333,
+        "median": 67683.5
+      }
+    },
+    {
+      "column": "2년내 직장명이력건수",
+      "strategy": "none",
+      "message": "0값=정상 비즈니스 값. 처리 없음."
+    }
+  ],
+  "leakage_columns": [
+    "대출연체건수",
+    "카드연체건수",
+    "연체일수",
+    "대출연체금액",
+    "카드연체금액"
+  ]
+}

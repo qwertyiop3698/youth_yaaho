@@ -1,0 +1,128 @@
+{
+  "lp": {
+    "skipped": false,
+    "status": "Optimal",
+    "solver_status": "Optimal Solution Found",
+    "is_optimal": true,
+    "objective_value": 35.5944769338253,
+    "n_persons": 1500,
+    "n_policies": 6,
+    "n_assignments": 684,
+    "max_policy_per_person": 2
+  },
+  "sensitivity_marginal_gain_per_10pct_budget": 0.029000000000000005,
+  "bandit": {
+    "is_simulation": true,
+    "simulation_disclaimer": "실제 운영 전 검증용 시뮬레이션입니다. true_effectiveness는 밴딧 수렴 검증을 위해 임의로 숨겨둔 값이며 실제 정책 효과가 아닙니다(발표 시 명시 필요).",
+    "n_rounds": 2000,
+    "final_posterior_means": {
+      "청년월세지원": 0.7580128205128205,
+      "머물자리론": 0.25,
+      "청년 중개보수·이사비 지원": 0.6,
+      "희망신용상담센터": 0.2222222222222222,
+      "부산청년 기쁨두배통장": 0.5384615384615384,
+      "청년디딤돌카드 플러스": 0.2222222222222222
+    },
+    "bandit_state": {
+      "청년월세지원": {
+        "alpha": 1419.0,
+        "beta": 453.0
+      },
+      "머물자리론": {
+        "alpha": 2.0,
+        "beta": 6.0
+      },
+      "청년 중개보수·이사비 지원": {
+        "alpha": 45.0,
+        "beta": 30.0
+      },
+      "희망신용상담센터": {
+        "alpha": 2.0,
+        "beta": 7.0
+      },
+      "부산청년 기쁨두배통장": {
+        "alpha": 21.0,
+        "beta": 18.0
+      },
+      "청년디딤돌카드 플러스": {
+        "alpha": 2.0,
+        "beta": 7.0
+      }
+    },
+    "true_effectiveness": {
+      "청년월세지원": 0.75,
+      "머물자리론": 0.25,
+      "청년 중개보수·이사비 지원": 0.55,
+      "희망신용상담센터": 0.15,
+      "부산청년 기쁨두배통장": 0.65,
+      "청년디딤돌카드 플러스": 0.1
+    },
+    "segment_regret": [
+      {
+        "segment_index": 0,
+        "segment_label": "초반",
+        "round_start": 0,
+        "round_end": 665,
+        "mean_instant_regret": 0.036711711711711704
+      },
+      {
+        "segment_index": 1,
+        "segment_label": "중반",
+        "round_start": 666,
+        "round_end": 1331,
+        "mean_instant_regret": 0.005705705705705704
+      },
+      {
+        "segment_index": 2,
+        "segment_label": "후반",
+        "round_start": 1332,
+        "round_end": 1999,
+        "mean_instant_regret": 0.002694610778443113
+      }
+    ],
+    "effectiveness_prior_vs_true_gap": [
+      {
+        "policy": "청년월세지원",
+        "effectiveness_prior": 0.5,
+        "true_effectiveness": 0.75,
+        "gap": 0.25,
+        "direction": "과소평가(상향 조정 필요)"
+      },
+      {
+        "policy": "머물자리론",
+        "effectiveness_prior": 0.5,
+        "true_effectiveness": 0.25,
+        "gap": -0.25,
+        "direction": "과대평가(하향 조정 필요)"
+      },
+      {
+        "policy": "청년 중개보수·이사비 지원",
+        "effectiveness_prior": 0.3,
+        "true_effectiveness": 0.55,
+        "gap": 0.25,
+        "direction": "과소평가(상향 조정 필요)"
+      },
+      {
+        "policy": "희망신용상담센터",
+        "effectiveness_prior": 0.4,
+        "true_effectiveness": 0.15,
+        "gap": -0.25,
+        "direction": "과대평가(하향 조정 필요)"
+      },
+      {
+        "policy": "부산청년 기쁨두배통장",
+        "effectiveness_prior": 0.4,
+        "true_effectiveness": 0.65,
+        "gap": 0.25,
+        "direction": "과소평가(상향 조정 필요)"
+      },
+      {
+        "policy": "청년디딤돌카드 플러스",
+        "effectiveness_prior": 0.3,
+        "true_effectiveness": 0.1,
+        "gap": -0.2,
+        "direction": "과대평가(하향 조정 필요)"
+      }
+    ]
+  }
+}

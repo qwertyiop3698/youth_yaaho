@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- androidx.core.splashscreen 백포트 테마. API 31+에서는 시스템 SplashScreen API가,
+         그 미만에서는 라이브러리가 이 테마를 흉내내는 방식으로 동작한다(MainActivity의
+         installSplashScreen() 호출과 짝을 이룸). 큰 로고(logo.png)는 아이콘 마스크
+         제약(1152px 권장 상한, 원형 클리핑) 때문에 여기서 안 쓰고, 대신 이 테마가 끝난
+         직후 뜨는 인앱 SplashScreen 컴포저블(ui/splash/SplashScreen.kt)에서 전체화면으로
+         보여준다. -->
+    <style name="Theme.YouthYaho.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@android:color/white</item>
+        <item name="android:windowBackground">@android:color/white</item>
+        <item name="postSplashScreenTheme">@android:style/Theme.Material.Light.NoActionBar</item>
+    </style>
+</resources>

@@ -35,7 +35,7 @@ function OverviewContent({ data }: { data: OverviewReady }) {
         />
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <div className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
         <h3 className="mb-4 text-sm font-medium text-gray-500">유형(클러스터)별 분포</h3>
         {pieData.length === 0 ? (
           <p className="text-sm text-gray-400">클러스터 데이터가 없습니다.</p>

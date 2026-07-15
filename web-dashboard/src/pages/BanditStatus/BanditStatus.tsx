@@ -51,7 +51,7 @@ function BanditStatusContent({ data }: { data: BanditStatusReady }) {
         />
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <div className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
         <h3 className="mb-4 text-sm font-medium text-gray-500">구간별(초반/중반/후반) 평균 순간 regret</h3>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
@@ -66,7 +66,7 @@ function BanditStatusContent({ data }: { data: BanditStatusReady }) {
         </div>
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <div className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
         <h3 className="mb-4 text-sm font-medium text-gray-500">
           정책별 효과 추정치: 초기 가정치(prior) vs 숨겨진 정답(true, 시뮬레이션 전용) vs 밴딧 학습값(learned)
         </h3>
@@ -86,17 +86,17 @@ function BanditStatusContent({ data }: { data: BanditStatusReady }) {
         </div>
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <div className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
         <h3 className="mb-4 text-sm font-medium text-gray-500">정책별 격차 요약</h3>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[560px] text-left text-sm">
             <thead className="text-gray-500">
               <tr>
-                <th className="border-b border-gray-200 py-2 pr-4">정책</th>
-                <th className="border-b border-gray-200 py-2 pr-4">초기 가정치</th>
-                <th className="border-b border-gray-200 py-2 pr-4">숨겨진 정답</th>
-                <th className="border-b border-gray-200 py-2 pr-4">밴딧 학습값</th>
-                <th className="border-b border-gray-200 py-2">방향</th>
+                <th className="border-b border-brand-border py-2 pr-4">정책</th>
+                <th className="border-b border-brand-border py-2 pr-4">초기 가정치</th>
+                <th className="border-b border-brand-border py-2 pr-4">숨겨진 정답</th>
+                <th className="border-b border-brand-border py-2 pr-4">밴딧 학습값</th>
+                <th className="border-b border-brand-border py-2">방향</th>
               </tr>
             </thead>
             <tbody>

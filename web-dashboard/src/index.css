@@ -1,5 +1,18 @@
 @import "tailwindcss";
 
+/* 청년야호 브랜드 토큰 — 앱 온보딩 시안과 동일한 팔레트(흰 배경 + 블루 베이스) */
+@theme {
+  --color-brand-ink: #16224f;
+  --color-brand-blue: #2f6fed;
+  --color-brand-blue-dark: #2557c7;
+  --color-brand-coral: #f1577a;
+  --color-brand-orange: #ff8e4d;
+  --color-brand-teal: #2fbeb6;
+  --color-brand-surface: #ffffff;
+  --color-brand-surface-muted: #f6f7fb;
+  --color-brand-border: #e5e7f0;
+}
+
 html,
 body,
 #root {
@@ -8,4 +21,5 @@ body,
 
 body {
   margin: 0;
+  background: #ffffff;
 }

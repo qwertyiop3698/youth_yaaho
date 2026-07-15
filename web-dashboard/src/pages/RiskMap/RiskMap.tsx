@@ -26,14 +26,14 @@ export function RiskMap() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">지역 위험지도</h2>
-        <div className="flex gap-1 rounded-lg border border-gray-200 bg-white p-1">
+        <div className="flex gap-1 rounded-lg border border-brand-border bg-white p-1">
           {LEVELS.map((l) => (
             <button
               key={l.value}
               type="button"
               onClick={() => setLevel(l.value)}
               className={`rounded px-3 py-1 text-sm ${
-                level === l.value ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'
+                level === l.value ? 'bg-brand-blue text-white' : 'text-gray-600 hover:bg-brand-surface-muted'
               }`}
             >
               {l.label}
