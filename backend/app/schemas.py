@@ -65,10 +65,25 @@ class RecommendationItem(BaseModel):
     expected_effect: float
     eligible: bool
     eligibility_confidence: str
+    url: str | None = None  # 온통청년 Open API 실시간 조회, 실패/미설정 시 None
+
+
+class OtherPolicyItem(BaseModel):
+    """policy_catalog.yaml의 6개 정밀매칭 정책 밖의 정책. 온통청년 API에서
+    사용자 거주지역(전국/부산시/구 단위)으로 검색한 결과라 expected_effect
+    같은 Δrisk 순위 정보는 없다(docs/05 effectiveness_prior 미보유)."""
+
+    policy: str
+    category: str | None = None
+    agency: str | None = None
+    description: str | None = None
+    url: str | None = None
+    apply_period: str | None = None
 
 
 class RecommendationsResponse(BaseModel):
     recommendations: list[RecommendationItem]
+    other_policies: list[OtherPolicyItem] = []
 
 
 class ExplanationResponse(BaseModel):

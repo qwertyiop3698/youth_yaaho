@@ -44,7 +44,22 @@ DEFAULT_OUTPUT = _PROJECT_ROOT / "data" / "synthetic_large.csv"
 # sample.csv에서 실제로 관측된 5개 부산 시군구 코드(모바일 앱 dong_code quick-select와
 # 동일) + 여유분 1개 - spatial CV 최소 그룹 수(MIN_GROUPS_FOR_SPATIAL_CV=5)를 넉넉히
 # 넘기기 위함.
-SIGUNGU_CODES = ["26440", "26260", "26230", "26350", "26320", "26410"]
+_MAIN_SIGUNGU_CODES = ["26440", "26260", "26230", "26350", "26320", "26410"]
+
+# 2026-07-15: 부산 16개 구/군 전체(대시보드 지역위험지도 choropleth)를 데모에서
+# 비어 보이지 않게 하기 위해 나머지 10개 구/군도 추가한다. 표본 규모는 위 6개와
+# 동일하게 맞추지 않고 "조금씩"만 채운다 - SIGUNGU_WEIGHTS에서 낮은 가중치를 준다.
+_EXTRA_SIGUNGU_CODES = [
+    "26110", "26140", "26170", "26200", "26290",
+    "26380", "26470", "26500", "26530", "26710",
+]
+SIGUNGU_CODES = _MAIN_SIGUNGU_CODES + _EXTRA_SIGUNGU_CODES
+
+# 기존 6개가 표본의 90%, 신규 10개가 나머지 10%를 나눠 가지도록 하는 표집 가중치.
+SIGUNGU_WEIGHTS = np.array(
+    [0.9 / len(_MAIN_SIGUNGU_CODES)] * len(_MAIN_SIGUNGU_CODES)
+    + [0.1 / len(_EXTRA_SIGUNGU_CODES)] * len(_EXTRA_SIGUNGU_CODES)
+)
 
 
 def load_columns() -> list[str]:
@@ -70,8 +85,8 @@ def generate(n: int, seed: int = 42) -> pd.DataFrame:
     assert len(columns) == 46, f"column_groups.yaml 컬럼 수가 46개가 아닙니다: {len(columns)}"
 
     dong_lookup = build_dong_lookup(rng)
-    residence_sigungu = rng.choice(SIGUNGU_CODES, size=n)
-    workplace_sigungu = rng.choice(SIGUNGU_CODES, size=n)
+    residence_sigungu = rng.choice(SIGUNGU_CODES, size=n, p=SIGUNGU_WEIGHTS)
+    workplace_sigungu = rng.choice(SIGUNGU_CODES, size=n, p=SIGUNGU_WEIGHTS)
     residence_dong = np.array([rng.choice(dong_lookup[s]) for s in residence_sigungu])
     workplace_dong = np.array([rng.choice(dong_lookup[s]) for s in workplace_sigungu])
 

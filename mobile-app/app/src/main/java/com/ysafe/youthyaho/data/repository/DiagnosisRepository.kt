@@ -6,7 +6,7 @@ import com.ysafe.youthyaho.data.api.dto.DiagnoseRequestDto
 import com.ysafe.youthyaho.data.api.dto.DiagnoseResponseDto
 import com.ysafe.youthyaho.data.api.dto.ExplanationResponseDto
 import com.ysafe.youthyaho.data.api.dto.HistoryResponseDto
-import com.ysafe.youthyaho.data.api.dto.RecommendationItemDto
+import com.ysafe.youthyaho.data.api.dto.RecommendationsResponseDto
 
 /**
  * 익명(게스트)/로그인 사용자 모두 동일하게 호출한다 - 로그인 여부에 따른 분기는
@@ -44,11 +44,13 @@ class DiagnosisRepository(private val api: CitizenApiService) {
 
     fun getCachedResult(sessionId: String): DiagnoseResponseDto? = diagnoseResultCache[sessionId]
 
-    // 정책 카탈로그 전체(우선순위순)를 반환한다 - "top3만" 자르는 건 이 레이어가
-    // 아니라 화면(RecommendationViewModel)의 책임으로 둔다. API 자체는 범용으로
-    // 두고, 몇 개를 보여줄지는 클라이언트 화면 요구사항(doc09: "top3")에 맡긴다.
-    suspend fun getRecommendations(sessionId: String): Result<List<RecommendationItemDto>> =
-        apiResultOf { api.recommendations(sessionId) }.map { it.recommendations }
+    // 정밀매칭 정책(recommendations, 우선순위순)과 그 외 신청 가능한 정책
+    // (other_policies, 온통청년 API 실시간 검색, 순위 없음)을 응답 그대로
+    // 반환한다 - "top3만" 자르는 건 이 레이어가 아니라 화면(RecommendationViewModel)의
+    // 책임으로 둔다. API 자체는 범용으로 두고, 몇 개를 보여줄지는 클라이언트
+    // 화면 요구사항(doc09: "top3")에 맡긴다.
+    suspend fun getRecommendations(sessionId: String): Result<RecommendationsResponseDto> =
+        apiResultOf { api.recommendations(sessionId) }
 
     // 백엔드가 세션에 캐싱해두고 재요청 시 재호출하지 않는다(app/routers/citizen.py)
     // - 여기서는 그냥 매번 호출하면 된다, 이중 캐싱할 필요 없음.

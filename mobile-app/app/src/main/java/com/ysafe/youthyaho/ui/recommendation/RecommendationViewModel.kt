@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.ysafe.youthyaho.data.api.ApiException
+import com.ysafe.youthyaho.data.api.dto.OtherPolicyItemDto
 import com.ysafe.youthyaho.data.api.dto.RecommendationItemDto
 import com.ysafe.youthyaho.data.repository.DiagnosisRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +23,7 @@ data class RecommendationUiState(
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
     val topRecommendations: List<RecommendationItemDto> = emptyList(),
+    val otherPolicies: List<OtherPolicyItemDto> = emptyList(),
 )
 
 class RecommendationViewModel(
@@ -45,10 +47,11 @@ class RecommendationViewModel(
         viewModelScope.launch {
             val result = diagnosisRepository.getRecommendations(sessionId)
             result.fold(
-                onSuccess = { recommendations ->
+                onSuccess = { response ->
                     _uiState.value = RecommendationUiState(
                         isLoading = false,
-                        topRecommendations = recommendations.sortedBy { it.priority }.take(TOP_N),
+                        topRecommendations = response.recommendations.sortedBy { it.priority }.take(TOP_N),
+                        otherPolicies = response.other_policies,
                     )
                 },
                 onFailure = { error ->

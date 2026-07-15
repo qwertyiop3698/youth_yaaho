@@ -63,6 +63,10 @@ def risk_map(level: str = "sigungu", store: PipelineStore = Depends(get_pipeline
     merged = featured_df[[group_col]].join(risk_scores[["event_probability"]], how="inner")
     grouped = merged.groupby(group_col)["event_probability"].agg(["mean", "count"]).reset_index()
     grouped = grouped.rename(columns={group_col: "region_code", "mean": "avg_risk_probability", "count": "n"})
+    # region_code가 원본 데이터에서 숫자(int64)로 들어오면 pydantic이 JSON number로
+    # 직렬화해버려 프론트(GeoJSON의 문자열 코드)와 매칭이 깨진다. API 계약(RiskRegion.
+    # region_code: string)을 항상 지키도록 명시적으로 문자열로 캐스팅한다.
+    grouped["region_code"] = grouped["region_code"].astype(str)
 
     return {"ready": True, "level": level, "regions": grouped.to_dict(orient="records")}
 
