@@ -21,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ysafe.youthyaho.data.api.dto.OtherPolicyItemDto
@@ -175,13 +176,23 @@ private fun OtherPolicyRow(item: OtherPolicyItemDto, modifier: Modifier = Modifi
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(modifier = Modifier.padding(end = 8.dp)) {
+            Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
                 Text(text = item.policy, style = MaterialTheme.typography.bodyLarge)
                 if (item.agency != null) {
                     Text(
                         text = item.agency,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (item.description != null) {
+                    Text(
+                        text = item.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 4.dp),
                     )
                 }
             }

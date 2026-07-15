@@ -128,6 +128,7 @@ class TestSearchPoliciesByRegion:
                                 "plcyNm": "부산 청년 정책",
                                 "lclsfNm": "주거",
                                 "sprvsnInstCdNm": "부산광역시",
+                                "plcyExplnCn": "부산 청년의 주거비 부담을 덜어주는 정책입니다.",
                                 "aplyUrlAddr": "https://example.com/apply",
                                 "aplyYmd": "20260101 ~ 20261231",
                                 "sprtTrgtMinAge": "19",
@@ -148,6 +149,7 @@ class TestSearchPoliciesByRegion:
                 "policy": "부산 청년 정책",
                 "category": "주거",
                 "agency": "부산광역시",
+                "description": "부산 청년의 주거비 부담을 덜어주는 정책입니다.",
                 "url": "https://example.com/apply",
                 "apply_period": "20260101 ~ 20261231",
                 "min_age": "19",
@@ -192,3 +194,32 @@ class TestSearchPoliciesByRegion:
         youthcenter_service.search_policies_by_region("26440")
 
         assert call_count["n"] == 1
+
+    def test_truncates_long_description(self, monkeypatch):
+        monkeypatch.setenv("YOUTHCENTER_API_KEY", "dummy-key")
+        long_description = "가" * (youthcenter_service.DESCRIPTION_MAX_LENGTH + 50)
+        monkeypatch.setattr(
+            httpx,
+            "get",
+            lambda *a, **k: _fake_response(
+                {"result": {"youthPolicyList": [{"plcyNo": "P1", "plcyNm": "정책", "plcyExplnCn": long_description}]}}
+            ),
+        )
+
+        result = youthcenter_service.search_policies_by_region("26440")
+
+        description = result[0]["description"]
+        assert description.endswith("…")
+        assert len(description) == youthcenter_service.DESCRIPTION_MAX_LENGTH + 1
+
+    def test_description_none_when_missing(self, monkeypatch):
+        monkeypatch.setenv("YOUTHCENTER_API_KEY", "dummy-key")
+        monkeypatch.setattr(
+            httpx,
+            "get",
+            lambda *a, **k: _fake_response({"result": {"youthPolicyList": [{"plcyNo": "P1", "plcyNm": "정책"}]}}),
+        )
+
+        result = youthcenter_service.search_policies_by_region("26440")
+
+        assert result[0]["description"] is None

@@ -76,6 +76,7 @@ class OtherPolicyItem(BaseModel):
     policy: str
     category: str | None = None
     agency: str | None = None
+    description: str | None = None
     url: str | None = None
     apply_period: str | None = None
 

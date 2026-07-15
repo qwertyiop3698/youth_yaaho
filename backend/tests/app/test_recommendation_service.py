@@ -139,6 +139,7 @@ class TestListOtherPolicies:
                     "policy": "정책명",
                     "category": "주거",
                     "agency": "부산광역시",
+                    "description": "정책 설명입니다.",
                     "url": "https://example.com",
                     "apply_period": "20260101 ~ 20261231",
                 }
@@ -152,6 +153,7 @@ class TestListOtherPolicies:
                 "policy": "정책명",
                 "category": "주거",
                 "agency": "부산광역시",
+                "description": "정책 설명입니다.",
                 "url": "https://example.com",
                 "apply_period": "20260101 ~ 20261231",
             }

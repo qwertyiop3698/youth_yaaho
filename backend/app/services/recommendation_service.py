@@ -98,6 +98,7 @@ def list_other_policies(input_payload: dict[str, Any], store: PipelineStore) -> 
             "policy": item["policy"],
             "category": item.get("category"),
             "agency": item.get("agency"),
+            "description": item.get("description"),
             "url": item.get("url"),
             "apply_period": item.get("apply_period"),
         }

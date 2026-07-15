@@ -17,6 +17,7 @@ data class OtherPolicyItemDto(
     val policy: String,
     val category: String? = null,
     val agency: String? = null,
+    val description: String? = null,
     val url: String? = null,
     val apply_period: String? = null,
 )

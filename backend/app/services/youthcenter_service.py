@@ -38,6 +38,7 @@ API_URL = "https://www.youthcenter.go.kr/go/ythip/getPlcy"
 REQUEST_TIMEOUT_SECONDS = 5.0
 CACHE_TTL_SECONDS = 3600
 REGION_SEARCH_PAGE_SIZE = 100
+DESCRIPTION_MAX_LENGTH = 200
 
 _cache: dict[str, tuple[float, str | None]] = {}
 _region_cache: dict[str, tuple[float, list[dict[str, Any]]]] = {}
@@ -49,6 +50,15 @@ def _extract_url(item: dict[str, Any]) -> str | None:
         if url:
             return url
     return None
+
+
+def _extract_description(item: dict[str, Any]) -> str | None:
+    description = (item.get("plcyExplnCn") or "").strip()
+    if not description:
+        return None
+    if len(description) > DESCRIPTION_MAX_LENGTH:
+        description = description[:DESCRIPTION_MAX_LENGTH].rstrip() + "…"
+    return description
 
 
 def _fetch_policy_url_raw(plcy_no: str) -> str | None:
@@ -126,6 +136,7 @@ def _fetch_policies_by_region_raw(zip_cd: str) -> list[dict[str, Any]]:
             "policy": item.get("plcyNm"),
             "category": item.get("lclsfNm"),
             "agency": item.get("sprvsnInstCdNm"),
+            "description": _extract_description(item),
             "url": _extract_url(item),
             "apply_period": (item.get("aplyYmd") or "").strip() or None,
             "min_age": item.get("sprtTrgtMinAge"),
