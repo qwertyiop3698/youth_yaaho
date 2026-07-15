@@ -25,6 +25,7 @@ from ..schemas import (
     HistoryEntry,
     HistoryResponse,
     LoginRequest,
+    OtherPolicyItem,
     RecommendationItem,
     RecommendationsResponse,
     RefreshRequest,
@@ -132,7 +133,11 @@ def recommendations(
 ) -> RecommendationsResponse:
     session = _get_session_or_404(engine, session_id)
     recs = recommendation_service.recommend_policies(session["input_payload"], session["diagnosis_result"], store)
-    return RecommendationsResponse(recommendations=[RecommendationItem(**r) for r in recs])
+    other_policies = recommendation_service.list_other_policies(session["input_payload"], store)
+    return RecommendationsResponse(
+        recommendations=[RecommendationItem(**r) for r in recs],
+        other_policies=[OtherPolicyItem(**p) for p in other_policies],
+    )
 
 
 @router.get("/{session_id}/explanation", response_model=ExplanationResponse)

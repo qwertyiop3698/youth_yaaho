@@ -71,7 +71,7 @@ class DiagnosisRepositoryTest {
     }
 
     @Test
-    fun `getRecommendations unwraps recommendations list on success`() = runTest {
+    fun `getRecommendations returns response body on success`() = runTest {
         val items = listOf(
             RecommendationItemDto(
                 policy = "청년월세지원",
@@ -81,12 +81,13 @@ class DiagnosisRepositoryTest {
                 eligibility_confidence = "verified",
             ),
         )
-        coEvery { api.recommendations("s1") } returns Response.success(RecommendationsResponseDto(items))
+        val expected = RecommendationsResponseDto(items)
+        coEvery { api.recommendations("s1") } returns Response.success(expected)
 
         val result = repository.getRecommendations("s1")
 
         assertTrue(result.isSuccess)
-        assertEquals(items, result.getOrNull())
+        assertEquals(expected, result.getOrNull())
     }
 
     @Test

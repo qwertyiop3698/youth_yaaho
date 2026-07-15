@@ -110,6 +110,17 @@ def _no_real_claude_calls(monkeypatch):
     monkeypatch.setattr(explanation_agent, "generate_explanation", _raise)
 
 
+@pytest.fixture(autouse=True)
+def _no_real_youthcenter_calls(monkeypatch):
+    """테스트에서 실제 온통청년 API로 나가지 않도록 기본적으로 url=None 폴백을
+    강제한다(네트워크 의존/느림/키 유출 방지). 개별 조회 동작을 검증하는
+    테스트는 이 fixture를 monkeypatch로 오버라이드해서 직접 검증한다."""
+    from app.services import youthcenter_service
+
+    monkeypatch.setattr(youthcenter_service, "get_policy_url", lambda plcy_no: None)
+    monkeypatch.setattr(youthcenter_service, "search_policies_by_region", lambda zip_cd: [])
+
+
 @pytest.fixture()
 def client(pipeline_output_dir, tmp_path):
     """산출물이 준비된 PipelineStore + 임시 SQLite로 앱을 띄운 TestClient."""
