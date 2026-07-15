@@ -3,7 +3,10 @@ package com.ysafe.youthyaho
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -21,6 +24,11 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             YouthYahoTheme {
+                // targetSdk 36(Android 15+)에서는 OS가 edge-to-edge를 강제한다(앱이
+                // enableEdgeToEdge()를 호출하지 않아도 콘텐츠가 상태바/내비게이션바
+                // 밑까지 그려짐). Surface 배경은 그대로 화면 전체를 채우되, 실제
+                // 콘텐츠(NavHost)만 safeDrawing 인셋만큼 안쪽으로 들여써서 스크롤 시
+                // 상단 항목이 상태바에 가려지는 문제를 막는다.
                 Surface(modifier = Modifier.fillMaxSize()) {
                     val navController = rememberNavController()
                     YouthYahoNavHost(
@@ -28,6 +36,7 @@ class MainActivity : ComponentActivity() {
                         authRepository = container.authRepository,
                         diagnosisRepository = container.diagnosisRepository,
                         tokenStore = container.tokenStore,
+                        modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing),
                     )
                 }
             }
