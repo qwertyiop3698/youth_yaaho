@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -17,11 +18,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ysafe.youthyaho.ui.common.BUSAN_DISTRICT_OPTIONS
 import com.ysafe.youthyaho.ui.common.ChipOption
 import com.ysafe.youthyaho.ui.common.ChipSingleSelect
+import com.ysafe.youthyaho.ui.common.ErrorContent
+import com.ysafe.youthyaho.ui.common.YouthYahoScaffold
 
 // "25-29" -> parse_age_group()이 첫 숫자(하한값)를 뽑아쓰므로 5세 단위 구간(docs/03)으로 맞춤.
 private val AGE_OPTIONS = listOf(
@@ -69,13 +73,14 @@ fun DiagnoseInputScreen(
         uiState.sessionId?.let(onDiagnoseSuccess)
     }
 
+    YouthYahoScaffold(title = "정보 입력", modifier = modifier) { paddingValues ->
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
+            .padding(paddingValues)
             .padding(24.dp),
     ) {
-        Text(text = "정보 입력", style = MaterialTheme.typography.headlineMedium)
         Text(
             text = "몇 가지만 알려주시면 바로 진단해드려요.",
             style = MaterialTheme.typography.bodyMedium,
@@ -116,19 +121,17 @@ fun DiagnoseInputScreen(
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth().padding(top = 20.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 20.dp)
+                .semantics(mergeDescendants = true) {},
         ) {
             Text(text = "부채가 있나요?", style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
             Switch(checked = uiState.hasDebt, onCheckedChange = viewModel::onHasDebtChange)
         }
 
         uiState.errorMessage?.let { message ->
-            Text(
-                text = message,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(top = 16.dp),
-            )
+            ErrorContent(message = message, modifier = Modifier.padding(top = 16.dp))
         }
 
         Button(
@@ -137,10 +140,15 @@ fun DiagnoseInputScreen(
             modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
         ) {
             if (uiState.isLoading) {
-                CircularProgressIndicator(modifier = Modifier.padding(2.dp))
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp,
+                )
             } else {
                 Text("진단 시작하기")
             }
         }
+    }
     }
 }

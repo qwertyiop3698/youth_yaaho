@@ -18,12 +18,15 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ysafe.youthyaho.ui.common.YouthYahoScaffold
 
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
+    onBack: () -> Unit,
     onLoggedOut: () -> Unit,
     onPolicyRecords: () -> Unit,
     modifier: Modifier = Modifier,
@@ -34,11 +37,13 @@ fun SettingsScreen(
         if (uiState.accountDeleted) onLoggedOut()
     }
 
-    Column(modifier = modifier.fillMaxSize().padding(24.dp)) {
-        Text(text = "설정", style = MaterialTheme.typography.headlineMedium)
-
+    YouthYahoScaffold(title = "설정", onBack = onBack, modifier = modifier) { paddingValues ->
+    Column(modifier = Modifier.fillMaxSize().padding(paddingValues).padding(24.dp)) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 24.dp)
+                .semantics(mergeDescendants = true) {},
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -107,5 +112,6 @@ fun SettingsScreen(
                 TextButton(onClick = viewModel::dismissDeleteDialog) { Text("취소") }
             },
         )
+    }
     }
 }

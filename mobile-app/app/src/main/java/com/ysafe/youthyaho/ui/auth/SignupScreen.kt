@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -12,7 +13,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ysafe.youthyaho.ui.common.BUSAN_DISTRICT_OPTIONS
 import com.ysafe.youthyaho.ui.common.ChipSingleSelect
+import com.ysafe.youthyaho.ui.common.YouthYahoScaffold
 import kotlinx.coroutines.delay
 
 private const val SUCCESS_MESSAGE_DELAY_MS = 1200L
@@ -45,13 +46,14 @@ fun SignupScreen(
         }
     }
 
+    YouthYahoScaffold(title = "회원가입", onBack = onNavigateBack, modifier = modifier) { paddingValues ->
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
+            .padding(paddingValues)
             .padding(24.dp),
     ) {
-        Text(text = "회원가입", style = MaterialTheme.typography.headlineMedium)
         Text(
             text = "청년 상한(만 39세 이하)만 가입할 수 있어요. 생년월일은 본인이 직접 입력한 " +
                 "값이라 별도 본인인증은 아니에요.",
@@ -122,14 +124,16 @@ fun SignupScreen(
             modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
         ) {
             if (uiState.isLoading) {
-                CircularProgressIndicator(modifier = Modifier.padding(2.dp))
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp,
+                )
             } else {
                 Text("가입하기")
             }
         }
 
-        TextButton(onClick = onNavigateBack, modifier = Modifier.fillMaxWidth()) {
-            Text("뒤로")
-        }
+    }
     }
 }

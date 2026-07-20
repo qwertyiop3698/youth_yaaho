@@ -6,8 +6,6 @@ import androidx.compose.ui.graphics.Color
 val BrandInk = Color(0xFF16224F)
 val BrandBlue = Color(0xFF2F6FED)
 val BrandBlueDark = Color(0xFF2557C7)
-val BrandCoral = Color(0xFFF1577A)
-val BrandOrange = Color(0xFFFF8E4D)
 val BrandTeal = Color(0xFF2FBEB6)
 val BrandBackground = Color(0xFFFFFFFF)
 val BrandSurface = Color(0xFFFFFFFF)

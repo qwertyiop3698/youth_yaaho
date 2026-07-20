@@ -19,19 +19,39 @@ export type OverviewResponse = OverviewReady | NotReady
 
 export type RiskMapLevel = 'dong' | 'sigungu'
 
+export type LisaQuadrant = 'HH' | 'LL' | 'HL' | 'LH'
+
 export interface RiskRegion {
   region_code: string
   avg_risk_probability: number
   n: number
+  // sigungu 레벨에서만 채워짐(dong은 경계 geojson이 없어 공간분석 불가)
+  lisa_quadrant: LisaQuadrant | null
+}
+
+export interface SpatialStats {
+  skipped: boolean
+  reason?: string
+  morans_i?: number
+  p_value?: number
+  n_regions?: number
+  n_permutations?: number
+  is_significant?: boolean
 }
 
 export interface RiskMapReady {
   ready: true
   level: RiskMapLevel
   regions: RiskRegion[]
+  spatial_stats: SpatialStats | null
 }
 
 export type RiskMapResponse = RiskMapReady | NotReady
+
+export interface FairnessCorrectionGap {
+  before_tpr_gap: number | null
+  after_tpr_gap: number | null
+}
 
 export interface PolicyGapsReady {
   ready: true
@@ -39,6 +59,10 @@ export interface PolicyGapsReady {
   n_high_risk: number
   n_high_risk_without_policy: number
   regions: Array<{ region_code: string; n_high_risk_without_policy: number }>
+  // 성별 equalized-odds 보정임계값이 적용됐는지(risk_threshold가 보정 기준선과
+  // 다르면 자동으로 false - fairness_correction.py, admin.py 참고)
+  fairness_correction_applied: boolean
+  fairness_correction_before_after_gap: FairnessCorrectionGap | null
 }
 
 export type PolicyGapsResponse = PolicyGapsReady | NotReady
@@ -53,6 +77,24 @@ export interface PolicyCatalogResponse {
   ready: true
   policies: PolicyCatalogEntry[]
 }
+
+// LP는 이진변수(MIP)라 쉐도우 프라이스가 엄밀히 정의되지 않으므로, 정책 하나만
+// 예산을 10% 올려 재풀이하는 finite-difference로 근사한 값이다(docs/05 5-3).
+export interface PolicyMarginalReturn {
+  policy: string
+  baseline_coverage: number | null
+  bumped_coverage: number | null
+  marginal_gain_per_10pct: number | null
+  objective_delta: number | null
+  skipped: boolean
+}
+
+export interface PolicyMarginalReturnsReady {
+  ready: true
+  policies: PolicyMarginalReturn[]
+}
+
+export type PolicyMarginalReturnsResponse = PolicyMarginalReturnsReady | NotReady
 
 // simulate-budget은 다른 admin 엔드포인트와 달리 ready 필드가 아니라 skipped
 // 필드로 "계산 불가" 상태를 표현한다(POST 바디 검증까지 거친 뒤의 결과라서).
@@ -76,6 +118,26 @@ export interface ClustersReady {
 }
 
 export type ClustersResponse = ClustersReady | NotReady
+
+// 실측 전이 데이터가 아니라 클러스터 중심 거리 + 위험도 방향으로 구성한
+// 시뮬레이션이다(is_simulation은 항상 true - risk_trajectory_simulator.py 참고).
+export interface TrajectoryStep {
+  step: number
+  expected_avg_risk: number
+  [clusterKey: string]: number
+}
+
+export interface RiskTrajectoryOutlookReady {
+  ready: true
+  is_simulation: boolean
+  simulation_disclaimer: string
+  n_steps: number
+  intervention_effectiveness_used: number
+  no_intervention: TrajectoryStep[]
+  intervention: TrajectoryStep[]
+}
+
+export type RiskTrajectoryOutlookResponse = RiskTrajectoryOutlookReady | NotReady
 
 export interface SegmentRegret {
   segment_index: number
@@ -216,6 +278,21 @@ export interface PolicyDemandSummary {
   metrics: PolicyDemandMetrics | null
   comparison_summary: string[]
 }
+export interface ReportExportRow {
+  policy: string
+  eligibility_confidence: string
+  n_assignments: number
+  avg_experimental_fit: number | null
+}
+
+export interface ReportExportReady {
+  ready: true
+  format: 'json'
+  rows: ReportExportRow[]
+}
+
+export type ReportExportResponse = ReportExportReady | NotReady
+
 export interface PolicyDemandPriority {
   need_area: string
   respondent_count: number | null

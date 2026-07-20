@@ -43,6 +43,28 @@
 
 출력: `bandit_state.json` (정책별 α, β), regret curve 데이터 (Y-SAFE 대시보드 "밴딧 학습 현황" 화면에서 사용)
 
+## 5-3. 정책별 예산 한계수익 / 쉐도우 프라이스 (2026-07-20 추가, 차별화 항목)
+
+LP는 이진변수(MIP)라 branch-and-bound 이후에는 쉐도우 프라이스(dual value)가
+엄밀하게 정의되지 않는다(듀얼리티는 LP 완화에서만 보장됨). 대신 정책 하나만
+예산을 10% 올리고 나머지는 고정한 채 LP를 재풀이하는 finite-difference 방식으로
+"이 정책 예산을 10% 늘리면 커버리지가 얼마나 오르는가"를 정책별로 근사한다 -
+다른 정책 예산은 그대로 두어 "이 정책만 늘렸을 때"의 순수 효과를 분리해낸다.
+5-1의 전체 배율 스윕(`sensitivity_analysis.run_budget_sensitivity`)과 같은
+원리를 정책 단위로 좁힌 것이다.
+
+지금 예산배분에서 추가 예산 1원당 효과가 가장 큰 정책이 어디인지 순위로 보여줘
+"정책배정=예산 제약 하 최적화 문제"라는 주장을 숫자로 뒷받침한다.
+
+### 구현 위치
+
+`layer3_optimization/sensitivity_analysis.py`의 `run_per_policy_marginal_analysis()`.
+Layer3 배치가 미리 계산해 `optimization_report.json`의 `policy_marginal_return`과
+`policy_marginal_return.parquet`에 저장한다. API: `GET /api/v1/admin/policy-marginal-returns`
+(예산 시뮬레이터 화면의 슬라이더 재계산 시 매번 부르기엔 무거워 배치 산출물을 쓴다 -
+`POST /api/v1/admin/simulate-budget`은 대신 현재 슬라이더 값 기준 2점(1.0x/1.1x)만
+빠르게 재풀이해 `marginal_gain_per_10pct_budget`을 근사한다).
+
 ## 정책 카탈로그 (참고)
 
 | 정책명 | 대상 | 비고 |

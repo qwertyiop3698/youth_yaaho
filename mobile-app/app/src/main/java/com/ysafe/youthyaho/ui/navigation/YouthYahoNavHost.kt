@@ -185,6 +185,7 @@ fun YouthYahoNavHost(
                 onNextClick = {
                     navController.navigate(Screen.Recommendation.createRoute(sessionId))
                 },
+                onRetryDiagnose = { navController.navigate(Screen.DiagnoseInput.route) },
             )
         }
 
@@ -197,6 +198,7 @@ fun YouthYahoNavHost(
                 viewModel(factory = RecommendationViewModel.factory(diagnosisRepository, policyDemandRepository, sessionId))
             RecommendationScreen(
                 viewModel = viewModel,
+                onBack = { navController.popBackStack() },
                 onNextClick = {
                     navController.navigate(Screen.Explanation.createRoute(sessionId))
                 },
@@ -216,6 +218,7 @@ fun YouthYahoNavHost(
                 viewModel(factory = ExplanationViewModel.factory(diagnosisRepository, sessionId))
             ExplanationScreen(
                 viewModel = viewModel,
+                onBack = { navController.popBackStack() },
                 onNextClick = {
                     navController.navigate(Screen.History.createRoute(sessionId))
                 },
@@ -231,6 +234,7 @@ fun YouthYahoNavHost(
                 viewModel(factory = HistoryViewModel.factory(diagnosisRepository, sessionId))
             HistoryScreen(
                 viewModel = viewModel,
+                onBack = { navController.popBackStack() },
                 onNextClick = { navController.navigate(Screen.Settings.route) },
             )
         }
@@ -251,6 +255,7 @@ fun YouthYahoNavHost(
                 viewModel = viewModel,
                 policyName = policyId,
                 applicationUrl = policyUrl,
+                onBack = { navController.popBackStack() },
                 onOpenRecords = { navController.navigate(Screen.PolicyRecords.route) },
             )
         }
@@ -260,6 +265,7 @@ fun YouthYahoNavHost(
                 viewModel(factory = PolicyRecordsViewModel.factory(policyFeedbackRepository))
             PolicyRecordsRoute(
                 viewModel = viewModel,
+                onBack = { navController.popBackStack() },
                 onOpenFeedback = { usageId, policyId, stage ->
                     navController.navigate(Screen.PolicyFeedback.createRoute(usageId, policyId, stage))
                 },
@@ -285,6 +291,7 @@ fun YouthYahoNavHost(
             )
             FeedbackFormRoute(
                 viewModel = viewModel,
+                onBack = { navController.popBackStack() },
                 onDone = {
                     navController.navigate(Screen.PolicyRecords.route) {
                         popUpTo(Screen.PolicyRecords.route) { inclusive = true }
@@ -300,13 +307,17 @@ fun YouthYahoNavHost(
             val sessionId = backStackEntry.arguments?.getString(SESSION_ID_ARG).orEmpty()
             val reason = backStackEntry.arguments?.getString(DEMAND_REASON_ARG).orEmpty()
             val demandViewModel: PolicyDemandViewModel = viewModel(factory = PolicyDemandViewModel.factory(policyDemandRepository, sessionId, reason))
-            PolicyDemandScreen(demandViewModel, onDone = { navController.popBackStack() })
+            PolicyDemandScreen(
+                demandViewModel,
+                onBack = { navController.popBackStack() },
+                onDone = { navController.popBackStack() },
+            )
         }
 
         composable(Screen.Rewards.route) {
             val viewModel: RewardsViewModel =
                 viewModel(factory = RewardsViewModel.factory(policyFeedbackRepository))
-            RewardsRoute(viewModel)
+            RewardsRoute(viewModel, onBack = { navController.popBackStack() })
         }
 
         composable(Screen.Settings.route) {
@@ -314,6 +325,7 @@ fun YouthYahoNavHost(
                 viewModel(factory = SettingsViewModel.factory(tokenStore, authRepository))
             SettingsScreen(
                 viewModel = viewModel,
+                onBack = { navController.popBackStack() },
                 onLoggedOut = {
                     navController.navigate(Screen.Onboarding.route) {
                         popUpTo(0) { inclusive = true }

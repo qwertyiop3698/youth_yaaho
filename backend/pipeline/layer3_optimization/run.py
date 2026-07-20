@@ -24,6 +24,7 @@ from pathlib import Path
 import pandas as pd
 import yaml
 
+from ..layer2a_clustering import risk_trajectory_simulator
 from . import lp_allocator, regret_curve, sensitivity_analysis, synthetic_reward
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -73,6 +74,9 @@ def run(
     sensitivity_df.to_parquet(output_dir / "budget_sensitivity.parquet", index=False)
     marginal_gain = sensitivity_analysis.marginal_gain_per_10pct_budget(sensitivity_df)
 
+    policy_marginal_df = sensitivity_analysis.run_per_policy_marginal_analysis(df, policy_catalog, risk_col=RISK_COL)
+    policy_marginal_df.to_parquet(output_dir / "policy_marginal_return.parquet", index=False)
+
     policy_names = list(policy_catalog["policies"].keys())
     bandit_result = regret_curve.run_bandit_simulation(policy_names, n_rounds=N_BANDIT_ROUNDS)
     bandit_result["history"].to_parquet(output_dir / "regret_curve.parquet", index=False)
@@ -83,6 +87,7 @@ def run(
     report = {
         "lp": lp_report,
         "sensitivity_marginal_gain_per_10pct_budget": marginal_gain,
+        "policy_marginal_return": policy_marginal_df.to_dict(orient="records"),
         "bandit": {
             "is_simulation": bandit_result["is_simulation"],
             "simulation_disclaimer": (
@@ -102,18 +107,58 @@ def run(
             "effectiveness_prior_vs_true_gap": gap_df.to_dict(orient="records"),
         },
     }
+
+    # 위험 궤적 시뮬레이션(docs/04) - Layer2-A(클러스터 프로파일/소속확률)와
+    # Layer2-B(위험확률)가 둘 다 필요해 두 레이어 산출물이 합류하는 Layer3에서
+    # 계산한다. 둘 중 하나라도 없으면(표본부족으로 Layer2-A 생략 등) 조용히
+    # skipped로 남긴다 - 가짜 궤적을 만들지 않는다.
+    trajectory_report: dict = {
+        "skipped": True,
+        "reason": "cluster_report.json/cluster_membership.parquet가 없습니다(Layer2-A 미실행 또는 표본부족).",
+    }
+    cluster_report_path = output_dir / "cluster_report.json"
+    cluster_membership_path = output_dir / "cluster_membership.parquet"
+    if cluster_report_path.exists() and cluster_membership_path.exists():
+        cluster_report = json.loads(cluster_report_path.read_text(encoding="utf-8"))
+        if cluster_report.get("model_trained"):
+            cluster_profiles = pd.DataFrame.from_dict(cluster_report["cluster_profiles"], orient="index")
+            membership = pd.read_parquet(cluster_membership_path)
+            cluster_avg_risk = risk_trajectory_simulator.compute_cluster_avg_risk(membership, risk_scores[RISK_COL])
+            initial_distribution = risk_trajectory_simulator.compute_population_initial_distribution(membership)
+            effectiveness_values = [cfg["effectiveness_prior"] for cfg in policy_catalog["policies"].values()]
+            avg_effectiveness = sum(effectiveness_values) / len(effectiveness_values) if effectiveness_values else 0.0
+            trajectory_report = risk_trajectory_simulator.simulate_no_intervention_vs_intervention(
+                cluster_profiles,
+                cluster_avg_risk,
+                initial_distribution,
+                intervention_effectiveness=avg_effectiveness,
+            )
+            trajectory_report["skipped"] = False
+        else:
+            trajectory_report["reason"] = "클러스터 모델이 학습되지 않았습니다(표본 부족 등으로 Layer2-A 생략)."
+    report["trajectory_simulation"] = trajectory_report
+
     (output_dir / "optimization_report.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=2, default=str), encoding="utf-8"
     )
 
     print(f"[Layer3] LP: {lp_report}")
     print(f"[Layer3] 예산 10%당 커버리지율 평균 증가분: {marginal_gain}")
+    print(f"[Layer3] 정책별 예산 10%당 한계 커버리지: {policy_marginal_df.to_dict(orient='records')}")
     print(f"[Layer3] 밴딧(시뮬레이션) 사후평균: {bandit_result['final_posterior_means']}")
     print(f"[Layer3] 구간별 평균 regret(초반->후반): "
           f"{bandit_result['segment_regret']['mean_instant_regret'].tolist()}")
+    if not trajectory_report.get("skipped"):
+        print(
+            f"[Layer3] 위험 궤적 시뮬레이션: 무개입 최종 평균위험={trajectory_report['no_intervention'][-1]['expected_avg_risk']:.3f}, "
+            f"개입 최종 평균위험={trajectory_report['intervention'][-1]['expected_avg_risk']:.3f}"
+        )
+    else:
+        print(f"[Layer3] 위험 궤적 시뮬레이션 생략: {trajectory_report['reason']}")
     print(
         f"[Layer3] 출력: {output_dir}/assignment_results.parquet, budget_sensitivity.parquet, "
-        "regret_curve.parquet, regret_segment_summary.parquet, optimization_report.json"
+        "policy_marginal_return.parquet, regret_curve.parquet, regret_segment_summary.parquet, "
+        "optimization_report.json"
     )
 
     return report

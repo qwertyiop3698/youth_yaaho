@@ -8,7 +8,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -16,6 +15,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ysafe.youthyaho.ui.common.ErrorContent
+import com.ysafe.youthyaho.ui.common.LoadingIndicator
+import com.ysafe.youthyaho.ui.common.YouthYahoScaffold
 import com.ysafe.youthyaho.ui.result.ClusterMembershipBars
 import com.ysafe.youthyaho.ui.result.DomainIndexRadarChart
 import kotlin.math.roundToInt
@@ -23,33 +25,30 @@ import kotlin.math.roundToInt
 @Composable
 fun HistoryScreen(
     viewModel: HistoryViewModel,
+    onBack: () -> Unit,
     onNextClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    YouthYahoScaffold(title = "히스토리", onBack = onBack, modifier = modifier) { paddingValues ->
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
+            .padding(paddingValues)
             .padding(24.dp),
     ) {
-        Text(text = "히스토리", style = MaterialTheme.typography.headlineMedium)
-
         when {
             uiState.isLoading -> {
-                CircularProgressIndicator(modifier = Modifier.padding(top = 32.dp))
+                LoadingIndicator()
             }
             uiState.errorMessage != null -> {
-                Text(
-                    text = uiState.errorMessage ?: "",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium,
+                ErrorContent(
+                    message = uiState.errorMessage ?: "",
+                    onRetry = viewModel::retry,
                     modifier = Modifier.padding(top = 16.dp),
                 )
-                Button(onClick = viewModel::retry, modifier = Modifier.padding(top = 16.dp)) {
-                    Text("다시 시도")
-                }
             }
             else -> {
                 uiState.note?.let { note ->
@@ -99,5 +98,6 @@ fun HistoryScreen(
                 }
             }
         }
+    }
     }
 }

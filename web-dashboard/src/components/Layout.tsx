@@ -14,7 +14,7 @@ export function Layout() {
               to={item.path}
               end={item.path === '/'}
               className={({ isActive }) =>
-                `flex items-center justify-between rounded px-3 py-2 text-sm ${
+                `flex items-center justify-between rounded px-3 py-2 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-blue ${
                   isActive ? 'bg-brand-blue text-white' : 'text-gray-700 hover:bg-brand-surface-muted'
                 }`
               }

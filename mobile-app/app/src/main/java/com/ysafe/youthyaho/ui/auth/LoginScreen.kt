@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -19,6 +20,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ysafe.youthyaho.ui.common.YouthYahoScaffold
 
 @Composable
 fun LoginScreen(
@@ -34,9 +36,8 @@ fun LoginScreen(
         if (uiState.loginSucceeded) onLoginSuccess()
     }
 
-    Column(modifier = modifier.fillMaxSize().padding(24.dp)) {
-        Text(text = "로그인", style = MaterialTheme.typography.headlineMedium)
-
+    YouthYahoScaffold(title = "로그인", onBack = onNavigateBack, modifier = modifier) { paddingValues ->
+    Column(modifier = Modifier.fillMaxSize().padding(paddingValues).padding(24.dp)) {
         OutlinedTextField(
             value = uiState.email,
             onValueChange = viewModel::onEmailChange,
@@ -71,7 +72,11 @@ fun LoginScreen(
             modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
         ) {
             if (uiState.isLoading) {
-                CircularProgressIndicator(modifier = Modifier.padding(2.dp))
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp,
+                )
             } else {
                 Text("로그인")
             }
@@ -80,9 +85,6 @@ fun LoginScreen(
         TextButton(onClick = onNavigateToSignup, modifier = Modifier.fillMaxWidth()) {
             Text("아직 계정이 없으신가요? 회원가입")
         }
-
-        TextButton(onClick = onNavigateBack, modifier = Modifier.fillMaxWidth()) {
-            Text("뒤로")
-        }
+    }
     }
 }

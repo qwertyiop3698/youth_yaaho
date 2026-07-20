@@ -18,5 +18,5 @@ export const NAV_ITEMS: NavItem[] = [
   { path: '/bandit-status', label: '밴딧 학습 현황', implemented: true },
   { path: '/policy-feedback', label: '정책 피드백 분석', implemented: true },
   { path: '/policy-demand', label: '정책 미충족 수요', implemented: true },
-  { path: '/report-export', label: '리포트 내보내기', implemented: false },
+  { path: '/report-export', label: '리포트 내보내기', implemented: true },
 ]

@@ -25,6 +25,24 @@ p(x) = Σ_{k=1}^{K} π_k · N(x | μ_k, Σ_k)
 
 출력: `cluster_model.pkl`, `cluster_membership.parquet` (person_id별 K개 클러스터 소속확률)
 
+### 위험 궤적 시뮬레이션 (2026-07-20 추가, 차별화 항목)
+
+KCB 데이터가 단일 시점 스냅샷이라 실제 관측된 유형 전이(A유형→B유형)가 없다 -
+Cox가 duration을 관측할 수 없어 폐기된 것과 동일한 이유. 그래서 실측 대신
+**클러스터 중심 간 거리(가까울수록 전이 가능성 높음) + 평균위험 변화 방향**으로
+전이확률행렬을 구성하고, Thompson Sampling과 동일하게 "실제 운영 전 검증용
+시뮬레이션"임을 응답에 항상 명시한다(`is_simulation`/`simulation_disclaimer`).
+
+- 무개입 시나리오: 위험이 더 높은 이웃 클러스터로 전이가 편향됨("위험 심화" 가정)
+- 개입 시나리오: policy_catalog 평균 `effectiveness_prior`만큼 반대 방향(위험 감소)으로 편향
+- 두 시나리오를 6-step(가상 개월) 궤적으로 비교해 정책 개입의 기대 효과를 시각화
+
+**구현 위치**: `layer2a_clustering/risk_trajectory_simulator.py`. Layer2-A(클러스터
+프로파일/소속확률)와 Layer2-B(위험확률)가 둘 다 필요해 실제 계산은 두 산출물이
+합류하는 Layer3 배치(`layer3_optimization/run.py`)에서 수행하고, 결과는
+`optimization_report.json`의 `trajectory_simulation` 키에 저장한다. API:
+`GET /api/v1/admin/risk-trajectory-outlook`.
+
 ---
 
 ## Layer 2-B: 프록시 라벨 기반 이진 위험모델
@@ -69,12 +87,46 @@ assert not any(col in feature_columns for col in LEAKAGE_COLUMNS), \
 
 - 성별/연령대 서브그룹별 AUC/PR-AUC 차이 비교. 특정 그룹의 시스템적 과대/과소 위험 판정 여부 확인 후 리포트화.
 
+### 공정성 보정 (2026-07-20 추가, 차별화 항목)
+
+AUC는 threshold-independent라 그룹별 확률 재보정(recalibration)으로는 AUC 격차가
+줄지 않는다(그룹별 단조변환은 그룹 내부 순위/AUC를 그대로 보존하기 때문). 대신
+실제로 쓰이는 단일 임계값 지점 - `/policy-gaps`의 `risk_threshold`(기본 0.6,
+"고위험" 판정 기준) - 에 **성별별 equalized-odds 보정임계값**을 적용해 감사에서
+그치지 않고 실제로 격차를 줄인다(Hardt et al. 2016 후처리 공정성 기법의 근사
+구현). 기본임계값에서의 전체 TPR을 목표로, 각 그룹이 그 TPR에 가장 가까워지는
+임계값을 그룹별 ROC 곡선에서 찾는다. 표본 부족 그룹은 기본임계값을 그대로
+유지한다(fairness_audit.py와 동일한 방어 원칙).
+
+`risk_model_report.json`의 `fairness_correction`에 그룹별 보정임계값과 보정
+전/후 TPR 격차(`evaluation.before_tpr_gap`/`after_tpr_gap`)가 함께 저장된다.
+`/policy-gaps`가 `risk_threshold`를 보정 기준선(기본 0.6)과 동일하게 요청하면
+자동 적용되고, 다르면 보정값이 그 임계값에 맞춰 계산된 게 아니므로 단일
+임계값으로 자동 폴백한다.
+
+**구현 위치**: `layer2b_risk_model/fairness_correction.py`
+
 ### 설명력
 
 SHAP(TreeExplainer, LightGBM 기준)으로 개인별 top-3 위험 요인 추출 → Layer 4 입력.
 
+### 위험지도 공간적 자기상관 (2026-07-20 추가, 차별화 항목)
+
+지역 위험지도가 "그냥 색칠"이 아니라 통계적으로 유의미한 공간적 군집(hotspot)인지
+검정한다. Global Moran's I로 "위험점수가 공간적으로 우연이 아니게 몰려 있는가"를,
+Local Moran's I(LISA)로 "어느 지역이 hotspot(HH)/coldspot(LL)/이상치(HL, LH)인가"를
+판정한다. 둘 다 정규성을 가정하지 않는 순열검정으로 p-value를 산출한다.
+
+부산 16개 시군구의 인접관계는 손으로 하드코딩하지 않고 `web-dashboard/public/
+busan_districts.geojson`(지도가 쓰는 것과 동일한 소스) 폴리곤에서 정점 공유 여부로
+직접 유도한다. 영도구처럼 육지 경계가 없는 섬 지역은 최근접 지역에 연결해 공간가중치
+행렬에 고립된(이웃 0개) 행이 생기지 않게 한다.
+
+**구현 위치**: `layer2b_risk_model/spatial_autocorrelation.py`. API:
+`GET /api/v1/admin/risk-map?level=sigungu` 응답의 `spatial_stats`/`regions[].lisa_quadrant`.
+
 ### 구현 위치
 
-`layer2b_risk_model/cox_trainer.py`, `layer2b_risk_model/baseline_models.py`, `layer2b_risk_model/spatial_cv.py`, `layer2b_risk_model/fairness_audit.py`, `layer2b_risk_model/shap_explainer.py`
+`layer2b_risk_model/cox_trainer.py`, `layer2b_risk_model/baseline_models.py`, `layer2b_risk_model/spatial_cv.py`, `layer2b_risk_model/fairness_audit.py`, `layer2b_risk_model/fairness_correction.py`, `layer2b_risk_model/spatial_autocorrelation.py`, `layer2b_risk_model/shap_explainer.py`
 
 출력: `risk_model.pkl`, `risk_scores.parquet` (event_probability, shap_top3 JSON)

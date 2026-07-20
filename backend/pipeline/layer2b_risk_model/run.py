@@ -42,7 +42,7 @@ import joblib
 import pandas as pd
 
 from ..layer0_data_contract.profiler import load_column_config
-from . import baseline_models, fairness_audit, shap_explainer, spatial_cv, target
+from . import baseline_models, fairness_audit, fairness_correction, shap_explainer, spatial_cv, target
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_INPUT = _PROJECT_ROOT / "data" / "processed" / "featured_dataset.parquet"
@@ -118,6 +118,22 @@ def run(input_path: Path, output_dir: Path, config_path: Path | None = None) -> 
     shap_top3 = shap_explainer.top_k_shap_features(shap_model, X, k=3)
     event_proba = pd.Series(deployed_model.predict_proba(X)[:, 1], index=X.index, name="event_probability")
 
+    # 공정성 감사(fairness_audit)가 성별 AUC 격차를 "발견"했다면, 실제로 쓰이는
+    # 임계값 지점(admin.py /policy-gaps의 risk_threshold, 기본 0.6)에 그룹별
+    # equalized-odds 보정 임계값을 계산해둔다 - 감사에서 그치지 않고 교정까지 한다.
+    fairness_correction_report: dict = {}
+    if "성별" in df.columns:
+        gender = df.loc[X.index, "성별"]
+        correction = fairness_correction.compute_equalized_odds_thresholds(
+            event.loc[X.index], event_proba, gender
+        )
+        if not correction.get("skipped"):
+            correction["evaluation"] = fairness_correction.evaluate_correction(
+                event.loc[X.index], event_proba, gender, correction["thresholds"], correction["baseline_threshold"]
+            )
+        fairness_correction_report = correction
+    report["fairness_correction"] = fairness_correction_report
+
     risk_scores = pd.DataFrame({"event_probability": event_proba, "shap_top3": shap_top3.apply(json.dumps)})
     risk_scores.to_parquet(output_dir / "risk_scores.parquet", index=True)
     joblib.dump(
@@ -136,6 +152,12 @@ def run(input_path: Path, output_dir: Path, config_path: Path | None = None) -> 
     print(f"[Layer2-B] 선택된 모델: {report['best_model_name']} ({report['selection_reason']})")
     print(f"[Layer2-B] 확률 보정 적용: {report['calibration_applied']}")
     print(f"[Layer2-B] spatial CV: skipped={spatial_result['skipped']}")
+    if fairness_correction_report and not fairness_correction_report.get("skipped"):
+        eval_ = fairness_correction_report.get("evaluation", {})
+        print(
+            f"[Layer2-B] 공정성 보정(성별): before_tpr_gap={eval_.get('before_tpr_gap')}, "
+            f"after_tpr_gap={eval_.get('after_tpr_gap')}, improved={eval_.get('improved')}"
+        )
     print(f"[Layer2-B] 출력: {output_dir}/risk_model.pkl, risk_scores.parquet")
 
     return report

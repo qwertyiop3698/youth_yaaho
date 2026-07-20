@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.github.mikephil.charting.charts.RadarChart
@@ -36,8 +38,12 @@ fun DomainIndexRadarChart(
     val axisMin = (values.minOrNull() ?: 0f).coerceAtMost(0f) - 0.5f
     val axisMax = (values.maxOrNull() ?: 1f).coerceAtLeast(0f) + 0.5f
 
+    // 차트 모양은 스크린리더가 읽을 수 없으므로, 값 목록을 텍스트로 요약해 제공한다.
+    val chartDescription = "영역별 지수(표준화 점수): " +
+        domainIndices.entries.joinToString(", ") { (name, value) -> "$name ${"%.1f".format(value)}" }
+
     AndroidView(
-        modifier = modifier.fillMaxWidth().height(280.dp),
+        modifier = modifier.fillMaxWidth().height(280.dp).semantics { contentDescription = chartDescription },
         factory = { context -> RadarChart(context) },
         update = { chart ->
             chart.description.setEnabled(false)

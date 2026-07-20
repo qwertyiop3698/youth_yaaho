@@ -88,6 +88,66 @@ class TestRunBudgetSensitivity:
         assert bool(result["skipped"].iloc[0]) is True
 
 
+def _tight_catalog(unit_cost=10, budget_a=50, budget_b=50):
+    # unit_cost를 budget_cap보다 훨씬 작게 잡아 bump가 정수 슬롯 수를 실제로
+    # 늘리도록 한다(unit_cost=budget_cap에 가까우면 10~50% 정도의 bump로는
+    # floor(budget/unit_cost)가 그대로라 marginal_gain이 항상 0으로 나올 수 있다).
+    return {
+        "policies": {
+            "정책A": {
+                "target_domains": {"도메인1": 1.0},
+                "effectiveness_prior": 0.5,
+                "unit_cost": unit_cost,
+                "budget_cap": budget_a,
+                "eligibility": {},
+            },
+            "정책B": {
+                "target_domains": {"도메인2": 1.0},
+                "effectiveness_prior": 0.4,
+                "unit_cost": unit_cost,
+                "budget_cap": budget_b,
+                "eligibility": {"age_range": {"min": 19, "max": 34, "confidence": "verified"}},
+            },
+        },
+        "defaults": {"max_policy_per_person": 2},
+    }
+
+
+class TestRunPerPolicyMarginalAnalysis:
+    def test_bumping_one_policy_does_not_mutate_input_catalog(self):
+        df = _make_people(n=30)
+        catalog = _tight_catalog()
+        sensitivity_analysis.run_per_policy_marginal_analysis(df, catalog, bump=0.5, max_policy_per_person=2)
+        assert catalog["policies"]["정책A"]["budget_cap"] == 50
+        assert catalog["policies"]["정책B"]["budget_cap"] == 50
+
+    def test_bumping_a_tight_budget_increases_its_own_coverage(self):
+        df = _make_people(n=30)
+        catalog = _tight_catalog()  # 5 slots per policy(budget 50 / unit_cost 10)
+        result = sensitivity_analysis.run_per_policy_marginal_analysis(
+            df, catalog, bump=0.5, max_policy_per_person=2
+        )
+        assert set(result["policy"]) == {"정책A", "정책B"}
+        valid = result["marginal_gain_per_10pct"].dropna()
+        assert not valid.empty
+        # 슬롯이 빠듯한 상황에서 그 정책 예산만 늘렸으므로 커버리지가 줄어들 수는 없다
+        assert (valid >= -1e-9).all()
+        assert (result["bumped_coverage"] >= result["baseline_coverage"] - 1e-9).all()
+
+    def test_result_sorted_descending_by_marginal_gain(self):
+        df = _make_people(n=30)
+        catalog = _tight_catalog()
+        result = sensitivity_analysis.run_per_policy_marginal_analysis(df, catalog, bump=0.5)
+        gains = result["marginal_gain_per_10pct"].dropna().tolist()
+        assert gains == sorted(gains, reverse=True)
+
+    def test_reports_skipped_when_no_valid_risk_scores(self):
+        df = pd.DataFrame({"도메인1": [0.0, 0.0]})
+        result = sensitivity_analysis.run_per_policy_marginal_analysis(df, _catalog())
+        assert bool(result["skipped"].iloc[0]) is True
+        assert result["marginal_gain_per_10pct"].isna().all()
+
+
 class TestMarginalGainPer10PctBudget:
     def test_linear_coverage_yields_expected_marginal_gain(self):
         df = pd.DataFrame({"budget_multiplier": [0.5, 1.0, 1.5], "coverage_overall": [0.2, 0.4, 0.6]})

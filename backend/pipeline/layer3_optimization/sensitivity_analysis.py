@@ -90,3 +90,62 @@ def marginal_gain_per_10pct_budget(sensitivity_df: pd.DataFrame, coverage_col: s
     if per_10pct.empty:
         return None
     return float(per_10pct.mean())
+
+
+def run_per_policy_marginal_analysis(
+    df: pd.DataFrame,
+    policy_catalog: dict[str, Any],
+    risk_col: str = "risk_probability",
+    bump: float = 0.1,
+    max_policy_per_person: int | None = None,
+) -> pd.DataFrame:
+    """정책 하나만 예산을 bump만큼 올리고 나머지는 고정한 채 LP를 재풀이해, "이 정책
+    예산을 10% 늘리면 커버리지가 얼마나 오르는가"를 정책별로 비교한다(docs/05 5-3).
+
+    LP는 이진 변수(MIP)라 branch-and-bound 이후에는 쉐도우 프라이스(dual value)가
+    엄밀하게 정의되지 않는다(듀얼리티는 LP 완화에서만 보장됨). 대신 전체 배율을
+    스윕하는 run_budget_sensitivity()와 동일한 finite-difference 방식을, 정책
+    하나만 건드리는 형태로 좁혀서 "한계수익"을 근사한다 - 다른 정책 예산은 그대로 두어
+    "이 정책만 늘렸을 때"의 순수 효과를 분리해낸다.
+    """
+    total_persons = int(df[risk_col].notna().sum()) if risk_col in df.columns else 0
+
+    baseline_assignment, baseline_report = lp_allocator.build_and_solve_lp(
+        df, policy_catalog, risk_col=risk_col, max_policy_per_person=max_policy_per_person
+    )
+    baseline_coverage = compute_coverage_rate(baseline_assignment, total_persons)
+
+    rows = []
+    for policy_name in policy_catalog["policies"]:
+        bumped_catalog = copy.deepcopy(policy_catalog)
+        bumped_catalog["policies"][policy_name]["budget_cap"] = bumped_catalog["policies"][policy_name][
+            "budget_cap"
+        ] * (1 + bump)
+        bumped_assignment, bumped_report = lp_allocator.build_and_solve_lp(
+            df, bumped_catalog, risk_col=risk_col, max_policy_per_person=max_policy_per_person
+        )
+        bumped_coverage = compute_coverage_rate(bumped_assignment, total_persons)
+
+        marginal_gain = None
+        if baseline_coverage["overall"] is not None and bumped_coverage["overall"] is not None and bump:
+            marginal_gain = (bumped_coverage["overall"] - baseline_coverage["overall"]) / bump * 0.1
+
+        objective_delta = None
+        if baseline_report.get("objective_value") is not None and bumped_report.get("objective_value") is not None:
+            objective_delta = bumped_report["objective_value"] - baseline_report["objective_value"]
+
+        rows.append(
+            {
+                "policy": policy_name,
+                "baseline_coverage": baseline_coverage["overall"],
+                "bumped_coverage": bumped_coverage["overall"],
+                "marginal_gain_per_10pct": marginal_gain,
+                "objective_delta": objective_delta,
+                "skipped": bumped_report.get("skipped", False),
+            }
+        )
+
+    result = pd.DataFrame(
+        rows, columns=["policy", "baseline_coverage", "bumped_coverage", "marginal_gain_per_10pct", "objective_delta", "skipped"]
+    )
+    return result.sort_values("marginal_gain_per_10pct", ascending=False, na_position="last").reset_index(drop=True)

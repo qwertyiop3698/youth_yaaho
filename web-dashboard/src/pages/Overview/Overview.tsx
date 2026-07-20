@@ -17,8 +17,12 @@ export function Overview() {
 
 function OverviewContent({ data }: { data: OverviewReady }) {
   const clusterEntries = Object.entries(data.cluster_sizes ?? {})
-  const pieData = clusterEntries.map(([key, value]) => ({
-    name: data.suggested_labels?.[key] ?? key,
+  // clusterKey(예: "cluster_1")는 항상 고유하지만 suggested_labels는 여러 클러스터가
+  // 같은 라벨(예: "소비유동성위험형")을 공유할 수 있어(docs/04) name을 React key로 쓰면
+  // 안 된다 - key 충돌로 렌더링이 깨질 수 있다.
+  const pieData = clusterEntries.map(([clusterKey, value]) => ({
+    clusterKey,
+    name: data.suggested_labels?.[clusterKey] ?? clusterKey,
     value,
   }))
 
@@ -40,12 +44,12 @@ function OverviewContent({ data }: { data: OverviewReady }) {
         {pieData.length === 0 ? (
           <p className="text-sm text-gray-400">클러스터 데이터가 없습니다.</p>
         ) : (
-          <div className="h-72">
+          <div className="h-72" role="img" aria-label="유형(클러스터)별 인원 분포 파이 차트">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
                   {pieData.map((entry, index) => (
-                    <Cell key={entry.name} fill={colorForIndex(index)} />
+                    <Cell key={entry.clusterKey} fill={colorForIndex(index)} />
                   ))}
                 </Pie>
                 <Tooltip />

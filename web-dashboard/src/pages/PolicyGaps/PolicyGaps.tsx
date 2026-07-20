@@ -30,6 +30,8 @@ export function PolicyGaps() {
           max={0.95}
           step={0.01}
           value={threshold}
+          aria-label="위험점수 기준선"
+          aria-valuetext={threshold.toFixed(2)}
           onChange={(e) => setThreshold(Number(e.target.value))}
           className="mt-2 w-full"
         />
@@ -64,6 +66,8 @@ function PolicyGapsContent({ data }: { data: PolicyGapsReady }) {
         />
       </div>
 
+      <FairnessCorrectionBadge data={data} />
+
       <div className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
         <h3 className="mb-4 text-sm font-medium text-gray-500">지역별 정책 미배정 집계</h3>
         {data.regions.length === 0 ? (
@@ -91,6 +95,31 @@ function PolicyGapsContent({ data }: { data: PolicyGapsReady }) {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+function FairnessCorrectionBadge({ data }: { data: PolicyGapsReady }) {
+  if (!data.fairness_correction_applied) {
+    return (
+      <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-500">
+        공정성 보정 미적용 — 기준선을 0.6으로 두면 성별 equalized-odds 보정임계값이 자동 적용됩니다.
+      </div>
+    )
+  }
+
+  const gap = data.fairness_correction_before_after_gap
+  const before = gap?.before_tpr_gap
+  const after = gap?.after_tpr_gap
+
+  return (
+    <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+      <span className="font-medium">공정성 보정 적용됨</span> — 고위험 판정에 성별별 equalized-odds 임계값을 사용했습니다.
+      {before !== null && before !== undefined && after !== null && after !== undefined && (
+        <span className="ml-1 text-emerald-700">
+          (성별 간 TPR 격차 {(before * 100).toFixed(1)}%p → {(after * 100).toFixed(1)}%p)
+        </span>
+      )}
     </div>
   )
 }

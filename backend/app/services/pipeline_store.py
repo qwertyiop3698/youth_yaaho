@@ -106,6 +106,10 @@ class PipelineStore:
         return _read_parquet_if_exists(self.data_dir / "budget_sensitivity.parquet")
 
     @cached_property
+    def policy_marginal_return(self) -> pd.DataFrame | None:
+        return _read_parquet_if_exists(self.data_dir / "policy_marginal_return.parquet")
+
+    @cached_property
     def regret_curve(self) -> pd.DataFrame | None:
         return _read_parquet_if_exists(self.data_dir / "regret_curve.parquet")
 

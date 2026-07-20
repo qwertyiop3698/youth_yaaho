@@ -12,10 +12,12 @@ from __future__ import annotations
 import copy
 from typing import Any
 
+import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 
 from pipeline.layer0_data_contract import cleaner as layer0_cleaner
+from pipeline.layer2b_risk_model import spatial_autocorrelation
 from pipeline.layer3_optimization import lp_allocator, sensitivity_analysis
 
 from ..auth import require_admin_api_key
@@ -71,7 +73,23 @@ def risk_map(
     # region_code: string)을 항상 지키도록 명시적으로 문자열로 캐스팅한다.
     grouped["region_code"] = grouped["region_code"].astype(str)
 
-    return {"ready": True, "level": level, "regions": grouped.to_dict(orient="records")}
+    # 공간적 자기상관(Moran's I)은 폴리곤 경계 데이터가 있는 sigungu 단위에서만
+    # 계산한다(dong 단위는 RiskMap.tsx 주석대로 아직 경계 geojson이 없다).
+    spatial_stats: dict[str, Any] | None = None
+    lisa_by_region: dict[str, dict[str, Any]] = {}
+    if level == "sigungu" and spatial_autocorrelation.DEFAULT_GEOJSON_PATH.exists():
+        risk_by_region = grouped.set_index("region_code")["avg_risk_probability"]
+        adjacency = spatial_autocorrelation.load_busan_adjacency(spatial_autocorrelation.DEFAULT_GEOJSON_PATH)
+        spatial_stats = spatial_autocorrelation.compute_morans_i(risk_by_region, adjacency)
+        if not spatial_stats.get("skipped"):
+            lisa_by_region = spatial_autocorrelation.compute_local_indicators(risk_by_region, adjacency)
+
+    regions = grouped.to_dict(orient="records")
+    for region in regions:
+        lisa = lisa_by_region.get(region["region_code"])
+        region["lisa_quadrant"] = lisa["quadrant"] if lisa else None
+
+    return {"ready": True, "level": level, "regions": regions, "spatial_stats": spatial_stats}
 
 
 @router.get("/clusters")
@@ -92,15 +110,51 @@ def clusters(store: PipelineStore = Depends(get_pipeline_store)) -> dict[str, An
 @router.get("/policy-gaps")
 def policy_gaps(
     risk_threshold: float = Query(default=0.6, ge=0.0, le=1.0),
+    fairness_corrected: bool = Query(
+        default=True, description="risk_model_report.json의 성별 equalized-odds 보정임계값을 적용할지"
+    ),
     store: PipelineStore = Depends(get_pipeline_store),
 ) -> dict[str, Any]:
-    """정책 사각지대를 개인 ID 없이 지역별 집계로만 반환한다."""
+    """정책 사각지대를 개인 ID 없이 지역별 집계로만 반환한다.
+
+    fairness_corrected=True(기본)이고 risk_threshold가 risk_model_report.json에
+    저장된 공정성 보정의 baseline_threshold와 같으면, 단일 임계값 대신 성별별
+    equalized-odds 보정임계값(fairness_correction.py)으로 고위험 여부를 판정한다
+    - 공정성 감사에서 발견한 성별 격차를 실제 판정 지점에서 교정한다(docs/04).
+    risk_threshold를 다른 값으로 바꾸면 보정임계값(특정 baseline에 맞춰 계산됨)이
+    더는 유효하지 않으므로 단일 임계값으로 자동 폴백한다.
+    """
     risk_scores = store.risk_scores
     if risk_scores is None:
         return _not_ready("risk_scores가 없습니다(Layer2-B 미실행 또는 표본부족).")
 
     assignment_results = store.assignment_results
-    high_risk_idx = risk_scores[risk_scores["event_probability"] >= risk_threshold].index
+
+    fairness_correction_applied = False
+    before_after_gap: dict[str, Any] | None = None
+    high_risk_mask = risk_scores["event_probability"] >= risk_threshold
+
+    if fairness_corrected:
+        correction = (store.risk_model_report or {}).get("fairness_correction") or {}
+        featured_df = store.featured_dataset
+        if (
+            not correction.get("skipped")
+            and correction.get("baseline_threshold") is not None
+            and abs(correction["baseline_threshold"] - risk_threshold) < 1e-9
+            and featured_df is not None
+            and "성별" in featured_df.columns
+        ):
+            gender = featured_df["성별"].reindex(risk_scores.index).astype(str)
+            per_person_threshold = gender.map(correction["thresholds"]).fillna(risk_threshold)
+            high_risk_mask = risk_scores["event_probability"] >= per_person_threshold
+            fairness_correction_applied = True
+            evaluation = correction.get("evaluation") or {}
+            before_after_gap = {
+                "before_tpr_gap": evaluation.get("before_tpr_gap"),
+                "after_tpr_gap": evaluation.get("after_tpr_gap"),
+            }
+
+    high_risk_idx = risk_scores[high_risk_mask].index
     assigned_ids = set(assignment_results["person_id"].unique()) if assignment_results is not None else set()
     gap_ids = [i for i in high_risk_idx if i not in assigned_ids]
 
@@ -123,6 +177,8 @@ def policy_gaps(
         "n_high_risk": int(len(high_risk_idx)),
         "n_high_risk_without_policy": len(gap_ids),
         "regions": regions,
+        "fairness_correction_applied": fairness_correction_applied,
+        "fairness_correction_before_after_gap": before_after_gap,
     }
 
 
@@ -171,13 +227,63 @@ def simulate_budget(
     total_persons = int(df["event_probability"].notna().sum())
     coverage = sensitivity_analysis.compute_coverage_rate(assignment_df, total_persons)
 
+    # 전체 예산을 10% 더 늘리면 커버율이 얼마나 오르는지 - 11개 배율을 전부 스윕하는
+    # sensitivity_analysis.run_budget_sensitivity()는 이 대화형 엔드포인트(슬라이더
+    # 조작마다 호출)에서 쓰기엔 LP를 너무 많이(11회) 다시 풀어야 해서 느리다. 대신
+    # 방금 계산한 현재(1.0배율) 커버율에 1.1배율 한 번만 추가로 풀어서 2점으로 근사한다.
+    marginal_gain = None
+    if not lp_report.get("skipped", False) and coverage["overall"] is not None:
+        bumped_catalog = copy.deepcopy(custom_catalog)
+        for policy_cfg in bumped_catalog["policies"].values():
+            policy_cfg["budget_cap"] = policy_cfg["budget_cap"] * 1.1
+        bumped_assignment, bumped_report = lp_allocator.build_and_solve_lp(
+            df, bumped_catalog, risk_col="event_probability"
+        )
+        if not bumped_report.get("skipped", False):
+            bumped_coverage = sensitivity_analysis.compute_coverage_rate(bumped_assignment, total_persons)
+            two_point_df = pd.DataFrame(
+                {"budget_multiplier": [1.0, 1.1], "coverage_overall": [coverage["overall"], bumped_coverage["overall"]]}
+            )
+            marginal_gain = sensitivity_analysis.marginal_gain_per_10pct_budget(two_point_df)
+
     return SimulateBudgetResponse(
         coverage_rate=coverage["overall"],
         coverage_rate_verified_only=coverage["verified_only"],
-        marginal_gain_per_10pct_budget=None,
+        marginal_gain_per_10pct_budget=marginal_gain,
         skipped=lp_report.get("skipped", False),
         reason=lp_report.get("reason"),
     )
+
+
+@router.get("/policy-marginal-returns")
+def policy_marginal_returns(store: PipelineStore = Depends(get_pipeline_store)) -> dict[str, Any]:
+    """정책별 '예산 10% 증액 시 한계 커버리지 증가분' 순위 (docs/05 5-3).
+
+    Layer3 배치(run.py)가 sensitivity_analysis.run_per_policy_marginal_analysis()로
+    미리 계산해둔 값을 그대로 반환한다 - 정책 6개 x 재풀이라 매 요청마다 계산하기엔
+    무거워서 simulate-budget과 달리 배치 산출물을 쓴다.
+    """
+    df = store.policy_marginal_return
+    if df is None:
+        return _not_ready("policy_marginal_return가 없습니다(Layer3 미실행).")
+    return {"ready": True, "policies": df.to_dict(orient="records")}
+
+
+@router.get("/risk-trajectory-outlook")
+def risk_trajectory_outlook(store: PipelineStore = Depends(get_pipeline_store)) -> dict[str, Any]:
+    """클러스터 간 위험 궤적 시뮬레이션(무개입 vs 정책 개입, docs/04) - Layer3 배치가
+    미리 계산해둔 optimization_report.json의 trajectory_simulation을 그대로 반환한다.
+
+    실측 전이 데이터가 아니라 클러스터 중심 거리 + 위험도 방향으로 구성한
+    시뮬레이션이라는 점(is_simulation/simulation_disclaimer)이 항상 함께 온다.
+    """
+    report = store.optimization_report
+    if not report:
+        return _not_ready("optimization_report.json이 없습니다(Layer3 미실행).")
+    trajectory = report.get("trajectory_simulation")
+    if not trajectory or trajectory.get("skipped"):
+        return _not_ready((trajectory or {}).get("reason", "위험 궤적 시뮬레이션 산출물이 없습니다."))
+    return {"ready": True, **trajectory}
 
 
 @router.get("/bandit-status")

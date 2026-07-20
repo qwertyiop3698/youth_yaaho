@@ -28,11 +28,22 @@
 | 화면 | 호출 API |
 |---|---|
 | 종합 현황판 | `GET /api/v1/admin/overview` |
-| 지역 위험지도 | `GET /api/v1/admin/risk-map?level=dong` |
-| 유형별 상세 | `GET /api/v1/admin/clusters` |
-| 정책 사각지대 | `GET /api/v1/admin/policy-gaps` |
-| 예산 시뮬레이터 | `POST /api/v1/admin/simulate-budget` |
+| 지역 위험지도 | `GET /api/v1/admin/risk-map?level=dong` (sigungu 레벨은 `spatial_stats`/`lisa_quadrant`에 Moran's I 포함) |
+| 유형별 상세 | `GET /api/v1/admin/clusters`, `GET /api/v1/admin/risk-trajectory-outlook` (위험 궤적 시뮬레이션) |
+| 정책 사각지대 | `GET /api/v1/admin/policy-gaps` (`fairness_corrected`로 성별 equalized-odds 보정임계값 적용) |
+| 예산 시뮬레이터 | `POST /api/v1/admin/simulate-budget`, `GET /api/v1/admin/policy-marginal-returns` (정책별 예산 한계수익) |
 | 밴딧 학습 현황 | `GET /api/v1/admin/bandit-status` |
+
+### 차별화 기능 4종 (2026-07-20 추가)
+
+기존 화면에 새 화면을 만들지 않고 패널로 얹었다 - 상세 설계는 docs/04, docs/05 참고.
+
+| 기능 | 붙은 화면 | 근거 문서 |
+|---|---|---|
+| LP 쉐도우 프라이스(정책별 예산 한계수익) | 예산 시뮬레이터 | docs/05 5-3 |
+| 위험지도 공간적 자기상관(Moran's I / LISA) | 지역 위험지도 | docs/04 |
+| 공정성 감사 → equalized-odds 보정 | 정책 사각지대 | docs/04 |
+| 위험 궤적 시뮬레이션(클러스터 간 Markov 전이) | 유형별 상세 | docs/04 |
 
 ## 프로젝트 구조 제안
 

@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.ysafe.youthyaho.ui.common.YouthYahoScaffold
 import com.ysafe.youthyaho.ui.theme.YouthYahoTheme
 
 /**
@@ -43,10 +44,12 @@ fun OnboardingScreen(
 ) {
     var consentChecked by remember { mutableStateOf(false) }
 
+    YouthYahoScaffold(title = "청년야호", modifier = modifier) { paddingValues ->
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
+            .padding(paddingValues)
             .padding(24.dp),
         verticalArrangement = Arrangement.Center,
     ) {
@@ -109,6 +112,7 @@ fun OnboardingScreen(
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(top = 16.dp),
         )
+    }
     }
 }
 

@@ -53,37 +53,45 @@ function BanditStatusContent({ data }: { data: BanditStatusReady }) {
 
       <div className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
         <h3 className="mb-4 text-sm font-medium text-gray-500">구간별(초반/중반/후반) 평균 순간 regret</h3>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={segmentData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="label" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="mean_instant_regret" name="평균 순간 regret" fill="#ef4444" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        {segmentData.length === 0 ? (
+          <p className="text-sm text-gray-400">구간별 regret 데이터가 없습니다.</p>
+        ) : (
+          <div className="h-64" role="img" aria-label="구간별 평균 순간 regret 막대 차트">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={segmentData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="label" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="mean_instant_regret" name="평균 순간 regret" fill="#ef4444" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </div>
 
       <div className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
         <h3 className="mb-4 text-sm font-medium text-gray-500">
           정책별 효과 추정치: 초기 가정치(prior) vs 숨겨진 정답(true, 시뮬레이션 전용) vs 밴딧 학습값(learned)
         </h3>
-        <div className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={comparisonData} layout="vertical" margin={{ left: 24 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" domain={[0, 1]} />
-              <YAxis type="category" dataKey="policy" width={140} tick={{ fontSize: 12 }} />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="prior" name="초기 가정치(prior)" fill="#94a3b8" />
-              <Bar dataKey="true_effectiveness" name="숨겨진 정답(true)" fill="#0ea5e9" />
-              <Bar dataKey="learned" name="밴딧 학습값(learned)" fill="#10b981" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        {comparisonData.length === 0 ? (
+          <p className="text-sm text-gray-400">정책별 효과 추정치 데이터가 없습니다.</p>
+        ) : (
+          <div className="h-80" role="img" aria-label="정책별 효과 추정치 비교 막대 차트">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={comparisonData} layout="vertical" margin={{ left: 24 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis type="number" domain={[0, 1]} />
+                <YAxis type="category" dataKey="policy" width={140} tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="prior" name="초기 가정치(prior)" fill="#94a3b8" />
+                <Bar dataKey="true_effectiveness" name="숨겨진 정답(true)" fill="#0ea5e9" />
+                <Bar dataKey="learned" name="밴딧 학습값(learned)" fill="#10b981" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </div>
 
       <div className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">

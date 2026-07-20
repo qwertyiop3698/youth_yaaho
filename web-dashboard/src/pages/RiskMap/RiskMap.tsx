@@ -3,7 +3,7 @@ import { Map as KakaoMap, Polygon, CustomOverlayMap, useKakaoLoader } from 'reac
 import { useRiskMap } from '../../hooks/useRiskMap'
 import { useBusanGeoJson } from '../../hooks/useBusanGeoJson'
 import { QueryState, NotReadyBanner } from '../../components/QueryState'
-import type { RiskMapLevel, RiskRegion } from '../../api/types'
+import type { RiskMapLevel, RiskRegion, SpatialStats } from '../../api/types'
 import { featureOuterRings, featureLabelPoint, riskColor, NO_DATA_COLOR } from '../../utils/geo'
 import type { BusanDistrictFeature } from '../../utils/geo'
 
@@ -29,7 +29,7 @@ export function RiskMap() {
               key={l.value}
               type="button"
               onClick={() => setLevel(l.value)}
-              className={`rounded px-3 py-1 text-sm ${
+              className={`rounded px-3 py-1 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-blue ${
                 level === l.value ? 'bg-brand-blue text-white' : 'text-gray-600 hover:bg-brand-surface-muted'
               }`}
             >
@@ -42,7 +42,10 @@ export function RiskMap() {
       <QueryState isLoading={isLoading} isError={isError} error={error}>
         {data && data.ready ? (
           level === 'sigungu' ? (
-            <RiskChoroplethMap regions={data.regions} />
+            <div className="flex flex-col gap-3">
+              <SpatialStatsBanner stats={data.spatial_stats} />
+              <RiskChoroplethMap regions={data.regions} />
+            </div>
           ) : (
             <div className="flex flex-col gap-3">
               <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
@@ -110,14 +113,15 @@ function RiskChoroplethMap({ regions }: { regions: RiskRegion[] }) {
         {geojson.features.map((feature) => {
           const region = regionByCode.get(feature.properties.region_code)
           const color = region ? riskColor(region.avg_risk_probability) : NO_DATA_COLOR
+          const isHotspot = region?.lisa_quadrant === 'HH'
           return featureOuterRings(feature).map((path, i) => (
             <Polygon
               key={`${feature.properties.region_code}-${i}`}
               path={path}
               fillColor={color}
               fillOpacity={region ? 0.75 : 0.35}
-              strokeColor="#FFFFFF"
-              strokeWeight={2}
+              strokeColor={isHotspot ? '#dc2626' : '#FFFFFF'}
+              strokeWeight={isHotspot ? 4 : 2}
               strokeOpacity={0.9}
               onMouseover={() => setHoveredCode(feature.properties.region_code)}
               onMouseout={() =>
@@ -137,6 +141,13 @@ function RiskChoroplethMap({ regions }: { regions: RiskRegion[] }) {
   )
 }
 
+const LISA_LABELS: Record<string, string> = {
+  HH: 'hotspot (고위험 군집)',
+  LL: 'coldspot (저위험 군집)',
+  HL: '고위험 이상치(주변은 낮음)',
+  LH: '저위험 이상치(주변은 높음)',
+}
+
 function DistrictTooltip({ feature, region }: { feature: BusanDistrictFeature; region: RiskRegion | undefined }) {
   return (
     <div className="rounded-lg border border-brand-border bg-white px-3 py-2 text-xs shadow-md">
@@ -145,10 +156,32 @@ function DistrictTooltip({ feature, region }: { feature: BusanDistrictFeature; r
         <>
           <p className="mt-0.5 text-gray-600">평균 프록시 점수 {(region.avg_risk_probability * 100).toFixed(0)}점</p>
           <p className="text-gray-400">표본 {region.n}명</p>
+          {region.lisa_quadrant && (
+            <p className="mt-0.5 text-gray-600">{LISA_LABELS[region.lisa_quadrant] ?? region.lisa_quadrant}</p>
+          )}
         </>
       ) : (
         <p className="mt-0.5 text-gray-400">표본 데이터 없음</p>
       )}
+    </div>
+  )
+}
+
+function SpatialStatsBanner({ stats }: { stats: SpatialStats | null }) {
+  if (!stats || stats.skipped || stats.morans_i === undefined || stats.p_value === undefined) {
+    return null
+  }
+
+  const significant = stats.is_significant
+  const bg = significant ? 'border-red-200 bg-red-50 text-red-800' : 'border-gray-200 bg-gray-50 text-gray-600'
+
+  return (
+    <div className={`rounded-lg border p-3 text-sm ${bg}`}>
+      <span className="font-medium">Moran&apos;s I = {stats.morans_i.toFixed(3)}</span>{' '}
+      (p = {stats.p_value.toFixed(3)}, {stats.n_permutations?.toLocaleString('ko-KR')}회 순열검정) —{' '}
+      {significant
+        ? '통계적으로 유의미한 공간적 군집(위험이 특정 지역에 몰려 있음)이 있습니다. 빨간 테두리는 hotspot(HH) 지역입니다.'
+        : '통계적으로 유의미한 공간적 군집이 발견되지 않았습니다(우연한 분포와 구분되지 않음).'}
     </div>
   )
 }
@@ -186,7 +219,7 @@ function RiskMapGrid({ regions }: { regions: RiskRegion[] }) {
         <div
           key={region.region_code}
           className="rounded-lg p-4 text-white shadow-sm"
-          style={{ backgroundColor: riskColor(region.avg_risk_probability) }}
+          style={{ backgroundColor: riskColor(region.avg_risk_probability), textShadow: '0 1px 2px rgba(0,0,0,0.55)' }}
         >
           <p className="text-xs opacity-90">{region.region_code}</p>
           <p className="mt-1 text-2xl font-semibold">{(region.avg_risk_probability * 100).toFixed(0)}점</p>

@@ -1,5 +1,8 @@
 import {
+  CartesianGrid,
   Legend,
+  Line,
+  LineChart,
   PolarAngleAxis,
   PolarGrid,
   PolarRadiusAxis,
@@ -7,24 +10,32 @@ import {
   RadarChart,
   ResponsiveContainer,
   Tooltip,
+  XAxis,
+  YAxis,
 } from 'recharts'
 import { useClusters } from '../../hooks/useClusters'
+import { useRiskTrajectoryOutlook } from '../../hooks/useRiskTrajectoryOutlook'
 import { NotReadyBanner, QueryState } from '../../components/QueryState'
 import { StatCard } from '../../components/StatCard'
 import { colorForIndex } from '../../colors'
-import type { ClustersReady } from '../../api/types'
+import type { ClustersReady, RiskTrajectoryOutlookResponse } from '../../api/types'
 
 export function Clusters() {
   const { data, isLoading, isError, error } = useClusters()
+  const trajectoryQuery = useRiskTrajectoryOutlook()
 
   return (
     <QueryState isLoading={isLoading} isError={isError} error={error}>
-      {data && data.ready ? <ClustersContent data={data} /> : data ? <NotReadyBanner reason={data.reason} /> : null}
+      {data && data.ready ? (
+        <ClustersContent data={data} trajectory={trajectoryQuery.data} />
+      ) : data ? (
+        <NotReadyBanner reason={data.reason} />
+      ) : null}
     </QueryState>
   )
 }
 
-function ClustersContent({ data }: { data: ClustersReady }) {
+function ClustersContent({ data, trajectory }: { data: ClustersReady; trajectory: RiskTrajectoryOutlookResponse | undefined }) {
   const profiles = data.cluster_profiles ?? {}
   const clusterKeys = Object.keys(profiles)
   const totalPopulation = Object.values(data.cluster_sizes ?? {}).reduce((sum, n) => sum + n, 0)
@@ -53,7 +64,7 @@ function ClustersContent({ data }: { data: ClustersReady }) {
         {radarData.length === 0 ? (
           <p className="text-sm text-gray-400">프로파일 데이터가 없습니다.</p>
         ) : (
-          <div className="h-96">
+          <div className="h-96" role="img" aria-label="클러스터별 도메인지수 z-score 레이더 차트">
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart data={radarData}>
                 <PolarGrid />
@@ -88,6 +99,63 @@ function ClustersContent({ data }: { data: ClustersReady }) {
             color={colorForIndex(index)}
           />
         ))}
+      </div>
+
+      <RiskTrajectoryPanel trajectory={trajectory} />
+    </div>
+  )
+}
+
+function RiskTrajectoryPanel({ trajectory }: { trajectory: RiskTrajectoryOutlookResponse | undefined }) {
+  if (!trajectory) return null
+
+  if (!trajectory.ready) {
+    return (
+      <div className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
+        <h3 className="mb-4 text-sm font-medium text-gray-500">위험 궤적 시뮬레이션: 정책 미개입 vs 정책 반영</h3>
+        <NotReadyBanner reason={trajectory.reason} />
+      </div>
+    )
+  }
+
+  const chartData = trajectory.no_intervention.map((step, i) => ({
+    step: step.step,
+    no_intervention_risk: step.expected_avg_risk,
+    intervention_risk: trajectory.intervention[i]?.expected_avg_risk,
+  }))
+
+  return (
+    <div className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
+      <h3 className="mb-1 text-sm font-medium text-gray-500">위험 궤적 시뮬레이션: 정책 미개입 vs 정책 반영</h3>
+      <div className="mb-4 rounded-lg border border-orange-200 bg-orange-50 p-3 text-sm text-orange-800">
+        {trajectory.simulation_disclaimer}
+      </div>
+      <div className="h-72" role="img" aria-label="정책 미개입 대비 정책 반영 시나리오의 위험 궤적 라인 차트">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="step" label={{ value: '스텝(가상 개월)', position: 'insideBottom', offset: -5 }} />
+            <YAxis domain={[0, 1]} tickFormatter={(v: number) => v.toFixed(2)} />
+            <Tooltip formatter={(v: number) => v.toFixed(3)} />
+            <Legend />
+            <Line
+              type="monotone"
+              dataKey="no_intervention_risk"
+              name="정책 미개입(위험 심화 가정)"
+              stroke="#ef4444"
+              strokeWidth={2}
+              dot={false}
+            />
+            <Line
+              type="monotone"
+              dataKey="intervention_risk"
+              name="정책 반영(개입 효과 가정)"
+              stroke="#0ea5e9"
+              strokeWidth={2}
+              dot={false}
+            />
+          </LineChart>
+        </ResponsiveContainer>
       </div>
     </div>
   )

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 시스템(OS) 스플래시 테마의 다크모드 변형. 배경색은 ui/theme/Color.kt의
+         BrandBackgroundDark(#0B0F26)와 동일하게 맞춰, 이 화면 다음에 뜨는 인앱
+         SplashScreen 컴포저블(다크모드에서 MaterialTheme.colorScheme.background 사용,
+         2026-07-20 수정)과 색이 끊기지 않고 이어지게 한다. -->
+    <style name="Theme.YouthYaho.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#0B0F26</item>
+        <item name="android:windowBackground">#0B0F26</item>
+        <item name="postSplashScreenTheme">@android:style/Theme.Material.Light.NoActionBar</item>
+    </style>
+</resources>

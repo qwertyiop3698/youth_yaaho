@@ -40,7 +40,7 @@ export function PolicyFeedbackDashboard({ summaries, analyses = [] }: { summarie
       <div className="flex flex-col gap-6">
         <div>
           <p className="text-sm font-medium text-brand-blue">정책 이용 경험 데이터</p>
-          <h2 className="mt-1 text-2xl font-semibold">정책 피드백 분석</h2>
+          <h2 className="mt-1 text-xl font-semibold">정책 피드백 분석</h2>
           <p className="mt-2 text-sm text-gray-500">
             신청 장벽, 체감 효과, 후속 지원과 개선 요구를 익명 집계로 확인합니다.
           </p>
@@ -48,7 +48,7 @@ export function PolicyFeedbackDashboard({ summaries, analyses = [] }: { summarie
 
         <section aria-labelledby="policy-feedback-list-title">
           <h3 id="policy-feedback-list-title" className="mb-3 text-lg font-semibold">정책별 응답 현황</h3>
-          <div className="overflow-x-auto rounded-xl border border-brand-border bg-white shadow-sm">
+          <div className="overflow-x-auto rounded-lg border border-brand-border bg-white shadow-sm">
             <table className="min-w-full text-left text-sm">
               <thead className="bg-brand-surface-muted text-gray-600">
                 <tr>
@@ -97,7 +97,7 @@ export function PolicyFeedbackDashboard({ summaries, analyses = [] }: { summarie
 export function PolicyFeedbackDetail({ summary }: { summary: PolicyFeedbackSummary }) {
   if (summary.suppressed || !summary.metrics) {
     return (
-      <section className="rounded-xl border border-amber-200 bg-amber-50 p-6" aria-live="polite">
+      <section className="rounded-lg border border-amber-200 bg-amber-50 p-6" aria-live="polite">
         <h3 className="text-lg font-semibold">{summary.policy_name}</h3>
         <p className="mt-3 text-sm text-amber-900">{SUPPRESSED_MESSAGE}</p>
         <InsightCards insights={generatePolicyFeedbackInsights(summary)} />
@@ -123,7 +123,7 @@ export function PolicyFeedbackDetail({ summary }: { summary: PolicyFeedbackSumma
         <DistributionCard title="신청 장벽" distribution={metrics.application_barrier_distribution} />
         <DistributionCard title="후속 정책 수요" distribution={metrics.followup_support_distribution} />
         <DistributionCard title="개선 요구" distribution={metrics.improvement_direction_distribution} />
-        <div className="rounded-xl border border-brand-border bg-white p-5 shadow-sm">
+        <div className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
           <h4 className="font-semibold">예산 적정성</h4>
           <dl className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
             <div><dt className="text-gray-500">금액 부족</dt><dd className="mt-1 text-xl font-semibold">{percent(metrics.insufficient_amount_ratio)}</dd></div>
@@ -141,7 +141,7 @@ function DistributionCard({ title, distribution }: { title: string; distribution
   const data = visibleDistribution(distribution)
   const hasSuppressedCell = Object.values(distribution).some((cell) => cell.suppressed)
   return (
-    <div className="rounded-xl border border-brand-border bg-white p-5 shadow-sm">
+    <div className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
       <h4 className="font-semibold">{title}</h4>
       {hasSuppressedCell && <p className="mt-2 text-xs text-gray-500">일부 소수 응답 셀은 완전히 숨겼습니다.</p>}
       {data.length === 0 ? (
@@ -165,7 +165,7 @@ function DistributionCard({ title, distribution }: { title: string; distribution
 
 function InsightCards({ insights }: { insights: string[] }) {
   return (
-    <div className="rounded-xl border border-brand-blue/20 bg-blue-50 p-5">
+    <div className="rounded-lg border border-brand-blue/20 bg-blue-50 p-5">
       <h4 className="font-semibold text-brand-ink">규칙 기반 행정 인사이트</h4>
       <ul className="mt-3 grid gap-2 text-sm text-gray-700">
         {insights.map((insight) => <li key={insight}>• {insight}</li>)}

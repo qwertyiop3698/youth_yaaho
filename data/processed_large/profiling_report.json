@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-11T05:23:28.716383+00:00",
+  "generated_at": "2026-07-20T12:52:42.267128+00:00",
   "row_count": 1500,
   "column_count": 46,
   "columns": {
@@ -89,7 +89,7 @@
       "null_pct": 0.0,
       "zero_count": 0,
       "zero_pct": 0.0,
-      "unique_count": 6,
+      "unique_count": 16,
       "unknown_category": {
         "checked": false,
         "reason": "코드북 미확정",
@@ -108,7 +108,7 @@
       "null_pct": 0.0,
       "zero_count": 0,
       "zero_pct": 0.0,
-      "unique_count": 6,
+      "unique_count": 16,
       "unknown_category": {
         "checked": false,
         "reason": "코드북 미확정",
@@ -127,7 +127,7 @@
       "null_pct": 0.0,
       "zero_count": 0,
       "zero_pct": 0.0,
-      "unique_count": 15,
+      "unique_count": 42,
       "unknown_category": {
         "checked": false,
         "reason": "코드북 미확정",
@@ -146,7 +146,7 @@
       "null_pct": 0.0,
       "zero_count": 0,
       "zero_pct": 0.0,
-      "unique_count": 15,
+      "unique_count": 42,
       "unknown_category": {
         "checked": false,
         "reason": "코드북 미확정",
@@ -179,7 +179,7 @@
       "null_pct": 0.0,
       "zero_count": 0,
       "zero_pct": 0.0,
-      "unique_count": 1115,
+      "unique_count": 1131,
       "needs_human_review": false,
       "review_reasons": []
     },
@@ -191,9 +191,9 @@
       "row_count": 1500,
       "null_count": 0,
       "null_pct": 0.0,
-      "zero_count": 897,
-      "zero_pct": 0.598,
-      "unique_count": 602,
+      "zero_count": 888,
+      "zero_pct": 0.592,
+      "unique_count": 606,
       "needs_human_review": false,
       "review_reasons": []
     },
@@ -205,9 +205,9 @@
       "row_count": 1500,
       "null_count": 0,
       "null_pct": 0.0,
-      "zero_count": 32,
-      "zero_pct": 0.0213,
-      "unique_count": 1435,
+      "zero_count": 33,
+      "zero_pct": 0.022,
+      "unique_count": 1430,
       "needs_human_review": false,
       "review_reasons": []
     },
@@ -221,7 +221,7 @@
       "null_pct": 0.0,
       "zero_count": 0,
       "zero_pct": 0.0,
-      "unique_count": 1419,
+      "unique_count": 1449,
       "needs_human_review": false,
       "review_reasons": []
     },
@@ -233,9 +233,9 @@
       "row_count": 1500,
       "null_count": 0,
       "null_pct": 0.0,
-      "zero_count": 962,
-      "zero_pct": 0.6413,
-      "unique_count": 516,
+      "zero_count": 966,
+      "zero_pct": 0.644,
+      "unique_count": 521,
       "needs_human_review": false,
       "review_reasons": []
     },
@@ -249,17 +249,17 @@
       "null_pct": 0.0,
       "zero_count": 0,
       "zero_pct": 0.0,
-      "unique_count": 1462,
+      "unique_count": 1474,
       "known_sentinel": {
         "checked": true,
         "hits": {
-          "-99999999": 31
+          "-99999999": 18
         }
       },
       "statistical_outlier": {
         "checked": true,
-        "threshold": 79411250.0,
-        "candidate_count": 31,
+        "threshold": 80770250.0,
+        "candidate_count": 18,
         "candidates": [
           -99999999.0
         ]
@@ -280,17 +280,17 @@
       "null_pct": 0.0,
       "zero_count": 0,
       "zero_pct": 0.0,
-      "unique_count": 1471,
+      "unique_count": 1455,
       "known_sentinel": {
         "checked": true,
         "hits": {
-          "-99999999": 18
+          "-99999999": 40
         }
       },
       "statistical_outlier": {
         "checked": true,
-        "threshold": 54228500.0,
-        "candidate_count": 18,
+        "threshold": 57977250.0,
+        "candidate_count": 40,
         "candidates": [
           -99999999.0
         ]
@@ -309,8 +309,8 @@
       "row_count": 1500,
       "null_count": 0,
       "null_pct": 0.0,
-      "zero_count": 1032,
-      "zero_pct": 0.688,
+      "zero_count": 1039,
+      "zero_pct": 0.6927,
       "unique_count": 2,
       "unknown_category": {
         "checked": false,
@@ -328,8 +328,8 @@
       "row_count": 1500,
       "null_count": 0,
       "null_pct": 0.0,
-      "zero_count": 687,
-      "zero_pct": 0.458,
+      "zero_count": 669,
+      "zero_pct": 0.446,
       "unique_count": 2,
       "unknown_category": {
         "checked": false,
@@ -349,22 +349,25 @@
       "null_pct": 0.0,
       "zero_count": 0,
       "zero_pct": 0.0,
-      "unique_count": 1431,
+      "unique_count": 1459,
       "known_sentinel": {
         "checked": true,
         "hits": {
-          "-99999999": 37
+          "-99999999": 23
         }
       },
       "statistical_outlier": {
         "checked": true,
-        "threshold": 102154250.0,
-        "candidate_count": 0,
-        "candidates": []
+        "threshold": 90191250.0,
+        "candidate_count": 23,
+        "candidates": [
+          -99999999.0
+        ]
       },
       "needs_human_review": true,
       "review_reasons": [
-        "known sentinel 값 발견"
+        "known sentinel 값 발견",
+        "통계적 이상치(IQR) 후보 발견"
       ]
     },
     "차량보유(국산/수입)": {
@@ -375,8 +378,8 @@
       "row_count": 1500,
       "null_count": 0,
       "null_pct": 0.0,
-      "zero_count": 832,
-      "zero_pct": 0.5547,
+      "zero_count": 816,
+      "zero_pct": 0.544,
       "unique_count": 3,
       "unknown_category": {
         "checked": false,
@@ -394,9 +397,9 @@
       "row_count": 1500,
       "null_count": 0,
       "null_pct": 0.0,
-      "zero_count": 1241,
-      "zero_pct": 0.8273,
-      "unique_count": 80,
+      "zero_count": 1260,
+      "zero_pct": 0.84,
+      "unique_count": 76,
       "needs_human_review": false,
       "review_reasons": []
     },
@@ -408,9 +411,9 @@
       "row_count": 1500,
       "null_count": 0,
       "null_pct": 0.0,
-      "zero_count": 646,
-      "zero_pct": 0.4307,
-      "unique_count": 483,
+      "zero_count": 675,
+      "zero_pct": 0.45,
+      "unique_count": 462,
       "needs_human_review": false,
       "review_reasons": []
     },
@@ -422,9 +425,9 @@
       "row_count": 1500,
       "null_count": 0,
       "null_pct": 0.0,
-      "zero_count": 247,
-      "zero_pct": 0.1647,
-      "unique_count": 481,
+      "zero_count": 294,
+      "zero_pct": 0.196,
+      "unique_count": 479,
       "needs_human_review": false,
       "review_reasons": []
     },
@@ -436,9 +439,9 @@
       "row_count": 1500,
       "null_count": 0,
       "null_pct": 0.0,
-      "zero_count": 367,
-      "zero_pct": 0.2447,
-      "unique_count": 7,
+      "zero_count": 410,
+      "zero_pct": 0.2733,
+      "unique_count": 6,
       "needs_human_review": false,
       "review_reasons": []
     },
@@ -450,9 +453,9 @@
       "row_count": 1500,
       "null_count": 0,
       "null_pct": 0.0,
-      "zero_count": 877,
-      "zero_pct": 0.5847,
-      "unique_count": 608,
+      "zero_count": 923,
+      "zero_pct": 0.6153,
+      "unique_count": 564,
       "needs_human_review": false,
       "review_reasons": []
     },
@@ -464,9 +467,9 @@
       "row_count": 1500,
       "null_count": 0,
       "null_pct": 0.0,
-      "zero_count": 877,
-      "zero_pct": 0.5847,
-      "unique_count": 596,
+      "zero_count": 923,
+      "zero_pct": 0.6153,
+      "unique_count": 552,
       "needs_human_review": false,
       "review_reasons": []
     },
@@ -478,9 +481,9 @@
       "row_count": 1500,
       "null_count": 0,
       "null_pct": 0.0,
-      "zero_count": 1241,
-      "zero_pct": 0.8273,
-      "unique_count": 260,
+      "zero_count": 1260,
+      "zero_pct": 0.84,
+      "unique_count": 241,
       "needs_human_review": false,
       "review_reasons": []
     },
@@ -492,9 +495,9 @@
       "row_count": 1500,
       "null_count": 0,
       "null_pct": 0.0,
-      "zero_count": 1241,
-      "zero_pct": 0.8273,
-      "unique_count": 259,
+      "zero_count": 1260,
+      "zero_pct": 0.84,
+      "unique_count": 238,
       "needs_human_review": false,
       "review_reasons": []
     },
@@ -506,9 +509,9 @@
       "row_count": 1500,
       "null_count": 0,
       "null_pct": 0.0,
-      "zero_count": 1342,
-      "zero_pct": 0.8947,
-      "unique_count": 158,
+      "zero_count": 1323,
+      "zero_pct": 0.882,
+      "unique_count": 172,
       "needs_human_review": false,
       "review_reasons": []
     },
@@ -520,9 +523,9 @@
       "row_count": 1500,
       "null_count": 0,
       "null_pct": 0.0,
-      "zero_count": 1342,
-      "zero_pct": 0.8947,
-      "unique_count": 156,
+      "zero_count": 1323,
+      "zero_pct": 0.882,
+      "unique_count": 175,
       "needs_human_review": false,
       "review_reasons": []
     },
@@ -534,9 +537,9 @@
       "row_count": 1500,
       "null_count": 0,
       "null_pct": 0.0,
-      "zero_count": 646,
-      "zero_pct": 0.4307,
-      "unique_count": 692,
+      "zero_count": 675,
+      "zero_pct": 0.45,
+      "unique_count": 668,
       "needs_human_review": false,
       "review_reasons": []
     },
@@ -548,9 +551,9 @@
       "row_count": 1500,
       "null_count": 0,
       "null_pct": 0.0,
-      "zero_count": 32,
-      "zero_pct": 0.0213,
-      "unique_count": 1398,
+      "zero_count": 33,
+      "zero_pct": 0.022,
+      "unique_count": 1383,
       "needs_human_review": false,
       "review_reasons": []
     },
@@ -562,9 +565,9 @@
       "row_count": 1500,
       "null_count": 0,
       "null_pct": 0.0,
-      "zero_count": 32,
-      "zero_pct": 0.0213,
-      "unique_count": 1268,
+      "zero_count": 33,
+      "zero_pct": 0.022,
+      "unique_count": 1270,
       "needs_human_review": false,
       "review_reasons": []
     },
@@ -576,9 +579,9 @@
       "row_count": 1500,
       "null_count": 0,
       "null_pct": 0.0,
-      "zero_count": 32,
-      "zero_pct": 0.0213,
-      "unique_count": 1322,
+      "zero_count": 33,
+      "zero_pct": 0.022,
+      "unique_count": 1334,
       "needs_human_review": false,
       "review_reasons": []
     },
@@ -590,9 +593,9 @@
       "row_count": 1500,
       "null_count": 0,
       "null_pct": 0.0,
-      "zero_count": 32,
-      "zero_pct": 0.0213,
-      "unique_count": 1180,
+      "zero_count": 33,
+      "zero_pct": 0.022,
+      "unique_count": 1198,
       "needs_human_review": false,
       "review_reasons": []
     },
@@ -604,9 +607,9 @@
       "row_count": 1500,
       "null_count": 0,
       "null_pct": 0.0,
-      "zero_count": 32,
-      "zero_pct": 0.0213,
-      "unique_count": 1160,
+      "zero_count": 33,
+      "zero_pct": 0.022,
+      "unique_count": 1142,
       "needs_human_review": false,
       "review_reasons": []
     },
@@ -618,8 +621,8 @@
       "row_count": 1500,
       "null_count": 0,
       "null_pct": 0.0,
-      "zero_count": 1287,
-      "zero_pct": 0.858,
+      "zero_count": 1241,
+      "zero_pct": 0.8273,
       "unique_count": 6,
       "needs_human_review": false,
       "review_reasons": []
@@ -632,9 +635,9 @@
       "row_count": 1500,
       "null_count": 0,
       "null_pct": 0.0,
-      "zero_count": 1381,
-      "zero_pct": 0.9207,
-      "unique_count": 6,
+      "zero_count": 1363,
+      "zero_pct": 0.9087,
+      "unique_count": 5,
       "needs_human_review": false,
       "review_reasons": []
     },
@@ -646,9 +649,9 @@
       "row_count": 1500,
       "null_count": 0,
       "null_pct": 0.0,
-      "zero_count": 1287,
-      "zero_pct": 0.858,
-      "unique_count": 31,
+      "zero_count": 1241,
+      "zero_pct": 0.8273,
+      "unique_count": 32,
       "needs_human_review": false,
       "review_reasons": []
     },
@@ -660,9 +663,9 @@
       "row_count": 1500,
       "null_count": 0,
       "null_pct": 0.0,
-      "zero_count": 1287,
-      "zero_pct": 0.858,
-      "unique_count": 210,
+      "zero_count": 1241,
+      "zero_pct": 0.8273,
+      "unique_count": 249,
       "needs_human_review": false,
       "review_reasons": []
     },
@@ -674,9 +677,9 @@
       "row_count": 1500,
       "null_count": 0,
       "null_pct": 0.0,
-      "zero_count": 1287,
-      "zero_pct": 0.858,
-      "unique_count": 198,
+      "zero_count": 1241,
+      "zero_pct": 0.8273,
+      "unique_count": 233,
       "needs_human_review": false,
       "review_reasons": []
     },
@@ -688,8 +691,8 @@
       "row_count": 1500,
       "null_count": 0,
       "null_pct": 0.0,
-      "zero_count": 1253,
-      "zero_pct": 0.8353,
+      "zero_count": 1206,
+      "zero_pct": 0.804,
       "unique_count": 2,
       "unknown_category": {
         "checked": false,
@@ -707,8 +710,8 @@
       "row_count": 1500,
       "null_count": 0,
       "null_pct": 0.0,
-      "zero_count": 1451,
-      "zero_pct": 0.9673,
+      "zero_count": 1456,
+      "zero_pct": 0.9707,
       "unique_count": 2,
       "unknown_category": {
         "checked": false,
@@ -728,22 +731,25 @@
       "null_pct": 0.0,
       "zero_count": 0,
       "zero_pct": 0.0,
-      "unique_count": 1396,
+      "unique_count": 1431,
       "known_sentinel": {
         "checked": true,
         "hits": {
-          "-99999999": 36
+          "-99999999": 31
         }
       },
       "statistical_outlier": {
         "checked": true,
-        "threshold": 105868000.0,
-        "candidate_count": 0,
-        "candidates": []
+        "threshold": 89904000.0,
+        "candidate_count": 31,
+        "candidates": [
+          -99999999.0
+        ]
       },
       "needs_human_review": true,
       "review_reasons": [
-        "known sentinel 값 발견"
+        "known sentinel 값 발견",
+        "통계적 이상치(IQR) 후보 발견"
       ]
     },
     "2년내 현거주지평균전세거래가": {
@@ -756,17 +762,17 @@
       "null_pct": 0.0,
       "zero_count": 0,
       "zero_pct": 0.0,
-      "unique_count": 1400,
+      "unique_count": 1417,
       "known_sentinel": {
         "checked": true,
         "hits": {
-          "-99999999": 31
+          "-99999999": 37
         }
       },
       "statistical_outlier": {
         "checked": true,
-        "threshold": 63898500.0,
-        "candidate_count": 31,
+        "threshold": 57324750.0,
+        "candidate_count": 37,
         "candidates": [
           -99999999.0
         ]
@@ -785,8 +791,8 @@
       "row_count": 1500,
       "null_count": 0,
       "null_pct": 0.0,
-      "zero_count": 959,
-      "zero_pct": 0.6393,
+      "zero_count": 961,
+      "zero_pct": 0.6407,
       "unique_count": 5,
       "needs_human_review": false,
       "review_reasons": []

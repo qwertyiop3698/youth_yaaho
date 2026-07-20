@@ -15,18 +15,17 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import com.ysafe.youthyaho.ui.common.ErrorContent
+import com.ysafe.youthyaho.ui.common.LoadingIndicator
+import com.ysafe.youthyaho.ui.common.YouthYahoScaffold
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -46,6 +45,7 @@ private fun openSafeWebLink(context: android.content.Context, uri: Uri) {
 @Composable
 fun RecommendationScreen(
     viewModel: RecommendationViewModel,
+    onBack: () -> Unit,
     onNextClick: () -> Unit,
     onPolicyDetail: (RecommendationItemDto) -> Unit,
     onPolicyDemand: (String) -> Unit,
@@ -53,41 +53,29 @@ fun RecommendationScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    CompositionLocalProvider(LocalContentColor provides Color.Black) {
-        LazyColumn(
-            modifier = modifier.fillMaxSize(),
-            contentPadding = PaddingValues(24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
+    YouthYahoScaffold(title = "정책 추천", onBack = onBack, modifier = modifier) { paddingValues ->
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(paddingValues),
+        contentPadding = PaddingValues(24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
         item {
-            Column(modifier = Modifier.padding(bottom = 12.dp)) {
-                Text(text = "정책 추천", style = MaterialTheme.typography.headlineMedium)
-                Text(
-                    text = "현재 입력정보와 정책 영역의 실험적 적합도를 비교한 결과예요. 최종 자격은 공고에서 확인해주세요.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
-            }
+            Text(
+                text = "현재 입력정보와 정책 영역의 실험적 적합도를 비교한 결과예요. 최종 자격은 공고에서 확인해주세요.",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(bottom = 12.dp),
+            )
         }
 
         when {
             uiState.isLoading -> {
                 item {
-                    CircularProgressIndicator(modifier = Modifier.padding(top = 20.dp))
+                    LoadingIndicator()
                 }
             }
             uiState.errorMessage != null -> {
                 item {
-                    Column {
-                        Text(
-                            text = uiState.errorMessage ?: "",
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                        Button(onClick = viewModel::retry, modifier = Modifier.padding(top = 16.dp)) {
-                            Text("다시 시도")
-                        }
-                    }
+                    ErrorContent(message = uiState.errorMessage ?: "", onRetry = viewModel::retry)
                 }
             }
             uiState.topRecommendations.isEmpty() -> {
@@ -174,7 +162,7 @@ fun RecommendationScreen(
 @Composable
 private fun recommendationCardColors() = CardDefaults.cardColors(
     containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-    contentColor = Color.Black,
+    contentColor = MaterialTheme.colorScheme.onSurface,
 )
 
 private fun confidenceLabel(confidence: String): String = when (confidence) {
@@ -210,7 +198,6 @@ private fun PolicyCard(
                     "공고에서 자격 조건 확인 필요"
                 },
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.Black,
                 modifier = Modifier.padding(top = 8.dp),
             )
             Text(
@@ -262,7 +249,6 @@ private fun OtherPoliciesSection(policies: List<OtherPolicyItemDto>, modifier: M
             Text(
                 text = category,
                 style = MaterialTheme.typography.titleMedium,
-                color = Color.Black,
                 modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
             )
             items.forEach { item ->
@@ -289,14 +275,14 @@ private fun OtherPolicyRow(item: OtherPolicyItemDto, modifier: Modifier = Modifi
                     Text(
                         text = item.agency,
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 if (item.description != null) {
                     Text(
                         text = item.description,
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(top = 4.dp),

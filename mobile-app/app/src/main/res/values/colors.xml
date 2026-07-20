@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#FFFFFF</color>
-    <!-- brand accent - doc09 "친근하고 캐주얼" 톤에 맞춘 임시 브랜드 컬러(디자인 확정 전 placeholder) -->
-    <color name="brand_primary">#FF6B4A</color>
+    <!-- ui/theme/Color.kt의 BrandBlue(#2F6FED)와 동일 - 웹 대시보드 brand-blue와도 통일된 값. -->
+    <color name="ic_launcher_background">#2F6FED</color>
+    <color name="brand_primary">#2F6FED</color>
 </resources>

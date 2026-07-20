@@ -20,7 +20,7 @@ export function ApiKeyWidget() {
         <button
           type="button"
           onClick={clearApiKey}
-          className="rounded border border-gray-300 px-2 py-1 text-gray-600 hover:bg-gray-100"
+          className="rounded border border-gray-300 px-2 py-1 text-gray-600 transition-colors hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-blue"
         >
           해제
         </button>
@@ -44,11 +44,12 @@ export function ApiKeyWidget() {
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         placeholder="Admin API 키(X-API-Key)"
-        className="rounded border border-gray-300 px-2 py-1 text-sm"
+        aria-label="Admin API 키"
+        className="rounded border border-gray-300 px-2 py-1 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-blue"
       />
       <button
         type="submit"
-        className="rounded bg-brand-blue px-3 py-1 text-sm text-white hover:bg-brand-blue-dark"
+        className="rounded bg-brand-blue px-3 py-1 text-sm text-white transition-colors hover:bg-brand-blue-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-blue-dark"
       >
         저장
       </button>
