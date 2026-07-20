@@ -27,6 +27,7 @@ import logging
 import os
 import time
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 
@@ -47,7 +48,8 @@ _region_cache: dict[str, tuple[float, list[dict[str, Any]]]] = {}
 def _extract_url(item: dict[str, Any]) -> str | None:
     for field in ("aplyUrlAddr", "refUrlAddr1", "refUrlAddr2"):
         url = (item.get(field) or "").strip()
-        if url:
+        parsed = urlparse(url)
+        if parsed.scheme == "https" and parsed.hostname:
             return url
     return None
 

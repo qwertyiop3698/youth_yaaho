@@ -14,6 +14,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,9 +25,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 fun SettingsScreen(
     viewModel: SettingsViewModel,
     onLoggedOut: () -> Unit,
+    onPolicyRecords: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(uiState.accountDeleted) {
+        if (uiState.accountDeleted) onLoggedOut()
+    }
 
     Column(modifier = modifier.fillMaxSize().padding(24.dp)) {
         Text(text = "설정", style = MaterialTheme.typography.headlineMedium)
@@ -45,15 +51,29 @@ fun SettingsScreen(
             modifier = Modifier.padding(top = 4.dp, bottom = 24.dp),
         )
 
-        OutlinedButton(onClick = viewModel::requestDeleteAccount, modifier = Modifier.fillMaxWidth()) {
-            Text("데이터 삭제 요청")
-        }
-        if (uiState.deleteRequestSubmitted) {
+        if (uiState.isLoggedIn) {
+            Button(
+                onClick = onPolicyRecords,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            ) {
+                Text("내 정책 기록과 모의 리워드")
+            }
+            OutlinedButton(
+                onClick = viewModel::requestDeleteAccount,
+                enabled = !uiState.isDeleting,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(if (uiState.isDeleting) "삭제 중..." else "계정 및 진단 기록 삭제")
+            }
+        } else {
             Text(
-                text = "삭제 요청이 접수되었어요. (데모용 표시 - 실제 서버 처리는 아직 연동되지 않았어요)",
+                text = "게스트 진단은 임의의 세션 ID로만 저장되며 계정과 연결되지 않아요.",
                 style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(top = 8.dp),
+                modifier = Modifier.padding(bottom = 24.dp),
             )
+        }
+        uiState.deleteErrorMessage?.let { message ->
+            Text(text = message, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp))
         }
 
         if (uiState.isLoggedIn) {
@@ -79,7 +99,7 @@ fun SettingsScreen(
         AlertDialog(
             onDismissRequest = viewModel::dismissDeleteDialog,
             title = { Text("데이터 삭제 요청") },
-            text = { Text("진단 기록 삭제를 요청하시겠어요? 실제 삭제 처리는 아직 서버에 연동되지 않아 확인만 남습니다.") },
+            text = { Text("계정과 계정에 연결된 모든 진단 기록을 즉시 삭제합니다. 이 작업은 되돌릴 수 없습니다.") },
             confirmButton = {
                 TextButton(onClick = viewModel::confirmDeleteRequest) { Text("요청하기") }
             },

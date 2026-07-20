@@ -12,7 +12,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from sqlalchemy import JSON, Boolean, Column, DateTime, Float, Integer, MetaData, String, Table, create_engine, func
+from sqlalchemy import JSON, Boolean, Column, DateTime, Float, Integer, MetaData, String, Table, create_engine, func, inspect
 from sqlalchemy.engine import Engine
 
 from . import config  # noqa: F401 - .env를 아래 os.environ.get("DATABASE_URL")보다 먼저 로드
@@ -33,6 +33,8 @@ users_table = Table(
     # 자기기재(self-declared) 생년월일이지 본인인증이 아니다 - 실제 본인인증 연동 시
     # 이 필드를 true로 전환하면 된다. 지금은 항상 False로 저장한다.
     Column("is_age_verified", Boolean, default=False),
+    Column("auth_version", Integer, nullable=False, default=0),
+    Column("refresh_version", Integer, nullable=False, default=0),
     Column("created_at", DateTime, server_default=func.now()),
 )
 
@@ -55,6 +57,8 @@ citizen_sessions = Table(
     Column("session_id", String, primary_key=True),
     # 로그인한 회원이 진단한 경우에만 채워진다 - 익명 진단(비로그인)은 계속 NULL.
     Column("user_id", String),
+    # 익명 세션 조회용 비밀 토큰은 원문 대신 SHA-256 해시만 저장한다.
+    Column("access_token_hash", String),
     Column("input_payload", JSON),
     Column("diagnosis_result", JSON),
     Column("explanation_text", String),  # 캐싱된 설명문(docs/06: "재요청 시 재호출하지 않음")
@@ -118,8 +122,55 @@ def init_db(engine: Engine) -> None:
     스키마가 코드보다 뒤처져서 "no column named ..." 같은 런타임 에러가 날 수 있다
     (2026-07-10 실제로 겪음: user_id 컬럼 추가 전에 만들어진 app.db가 계속
     재사용되다가 /diagnose에서 발생). pytest는 매번 tmp_path에 새 파일을 만들어서
-    이 문제를 겪지 않는다 - 로컬 개발 중 테이블 정의를 바꿨는데 이상한 DB 에러가
-    나면, 먼저 서버를 내리고 data/app.db를 지운 뒤 재시작해서 스키마를 새로
-    만들어보는 걸 의심할 것. 컬럼 추가가 잦아지면 Alembic 같은 실제 마이그레이션
-    도구 도입을 검토할 것(지금은 해커톤 범위에서 과함)."""
+    이 문제를 겪지 않는다. 현재 보안 관련 nullable/additive 컬럼은 아래의 제한된
+    SQLite migration이 보강한다. 그 밖의 스키마 변경이 잦아지면 Alembic 같은 실제
+    마이그레이션 도구를 도입해야 한다."""
+    # 독립 피드백 Infrastructure 테이블을 공용 metadata에 등록한다. 로컬 import는
+    # db.metadata를 참조하는 models 모듈과의 순환 import를 피하기 위함이다.
+    from .feedback import models as _feedback_models  # noqa: F401
+    from .feedback.repositories import seed_feedback_questions
+    from .policy_demand import models as _policy_demand_models  # noqa: F401
+
     metadata.create_all(engine)
+    _migrate_legacy_sqlite_schema(engine)
+    seed_feedback_questions(engine)
+
+
+def _migrate_legacy_sqlite_schema(engine: Engine) -> None:
+    """기존 데모 SQLite DB에 안전한 nullable 컬럼을 보강한다.
+
+    `create_all()`은 기존 테이블을 변경하지 않으므로, 앱 업데이트 뒤에도 예전
+    `data/app.db`를 그대로 쓰면 진단/탈퇴가 즉시 실패할 수 있다. 해커톤 시연에서
+    필요한 additive migration만 명시적으로 수행하고 데이터 삭제는 하지 않는다.
+    """
+    if engine.dialect.name != "sqlite":
+        return
+
+    additions = {
+        "users": {
+            "dong_code": "VARCHAR",
+            "is_age_verified": "BOOLEAN DEFAULT 0",
+            "created_at": "DATETIME",
+            "auth_version": "INTEGER NOT NULL DEFAULT 0",
+            "refresh_version": "INTEGER NOT NULL DEFAULT 0",
+        },
+        "citizen_sessions": {
+            "user_id": "VARCHAR",
+            "access_token_hash": "VARCHAR",
+            "explanation_text": "TEXT",
+            "explanation_is_llm_generated": "BOOLEAN",
+            "created_at": "DATETIME",
+        },
+    }
+    inspector = inspect(engine)
+    existing_tables = set(inspector.get_table_names())
+    with engine.begin() as conn:
+        for table_name, columns in additions.items():
+            if table_name not in existing_tables:
+                continue
+            existing_columns = {column["name"] for column in inspector.get_columns(table_name)}
+            for column_name, sql_type in columns.items():
+                if column_name not in existing_columns:
+                    conn.exec_driver_sql(
+                        f'ALTER TABLE "{table_name}" ADD COLUMN "{column_name}" {sql_type}'
+                    )

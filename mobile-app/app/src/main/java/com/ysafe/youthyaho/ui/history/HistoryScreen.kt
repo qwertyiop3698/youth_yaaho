@@ -72,7 +72,7 @@ fun HistoryScreen(
 
                 uiState.riskProbability?.let { risk ->
                     Text(
-                        text = "경제위험 확률 약 ${(risk * 100).roundToInt()}%",
+                        text = "프록시 위험점수 ${(risk * 100).roundToInt()}점",
                         style = MaterialTheme.typography.titleLarge,
                         modifier = Modifier.padding(bottom = 16.dp),
                     )

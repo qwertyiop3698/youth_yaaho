@@ -24,6 +24,18 @@ def _check_api_key(provided: str | None, env_var_name: str, role: str) -> None:
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"{env_var_name} 환경변수가 설정되지 않아 {role} API를 사용할 수 없습니다.",
         )
+    if len(expected.encode("utf-8")) < 32:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"{env_var_name}은 최소 32바이트의 무작위 값이어야 합니다.",
+        )
+    other_name = "INTERNAL_API_KEY" if env_var_name == "ADMIN_API_KEY" else "ADMIN_API_KEY"
+    other = os.environ.get(other_name)
+    if other and secrets.compare_digest(expected, other):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="ADMIN_API_KEY와 INTERNAL_API_KEY는 서로 다른 값이어야 합니다.",
+        )
     if not provided or not secrets.compare_digest(provided, expected):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

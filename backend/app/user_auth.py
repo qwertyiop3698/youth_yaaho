@@ -18,18 +18,7 @@ from .dependencies import get_engine
 from .services import auth_service
 
 
-def get_optional_current_user_id(
-    authorization: str | None = Header(default=None, alias="Authorization"),
-    engine: Engine = Depends(get_engine),
-) -> str | None:
-    """로그인 안 한 요청은 None을 반환한다(기존 익명 플로우 유지).
-
-    Authorization 헤더가 있는데 토큰이 잘못됐거나 만료됐거나, 회원이 청년 상한을
-    초과했으면 명확한 사유와 함께 요청을 거부한다.
-    """
-    if authorization is None:
-        return None
-
+def _resolve_current_user_id(authorization: str, engine: Engine, *, enforce_age_limit: bool) -> str:
     scheme, _, token = authorization.partition(" ")
     if scheme.lower() != "bearer" or not token:
         raise HTTPException(
@@ -45,9 +34,11 @@ def get_optional_current_user_id(
     user = auth_service.get_user_by_id(engine, user_id)
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="사용자를 찾을 수 없습니다.")
+    if payload.get("ver") != user.get("auth_version"):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="폐기된 로그인 토큰입니다.")
 
     age = auth_service.calculate_age(date.fromisoformat(user["birthdate"]))
-    if age > auth_service.MAX_AGE:
+    if enforce_age_limit and age > auth_service.MAX_AGE:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=(
@@ -57,3 +48,23 @@ def get_optional_current_user_id(
         )
 
     return user_id
+
+
+def get_optional_current_user_id(
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    engine: Engine = Depends(get_engine),
+) -> str | None:
+    """로그인 안 한 요청은 None, 유효한 Bearer 토큰이면 해당 user_id를 반환한다."""
+    if authorization is None:
+        return None
+    return _resolve_current_user_id(authorization, engine, enforce_age_limit=True)
+
+
+def get_current_user_id(
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    engine: Engine = Depends(get_engine),
+) -> str:
+    """회원 전용 API에서 사용하는 필수 인증 의존성."""
+    if authorization is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="로그인이 필요합니다.")
+    return _resolve_current_user_id(authorization, engine, enforce_age_limit=False)

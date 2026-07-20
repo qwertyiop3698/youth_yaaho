@@ -136,12 +136,29 @@ def safe_divide(numerator: pd.Series, denominator: pd.Series, fill_value: float 
     return result.where(~is_invalid, other=fill_value)
 
 
-def safe_zscore(series: pd.Series, min_sample: int = DEFAULT_MIN_SAMPLE_FOR_ZSCORE) -> pd.Series:
+def safe_zscore(
+    series: pd.Series,
+    min_sample: int = DEFAULT_MIN_SAMPLE_FOR_ZSCORE,
+    *,
+    population_mean: float | None = None,
+    population_std: float | None = None,
+) -> pd.Series:
     """z-score 표준화. 표본이 min_sample 미만이면(sample.csv=5행 등) 통계적으로
     불안정하다는 경고를 로깅한다(계산은 계속 진행 - 실데이터는 표본이 충분할 것이므로
     막을 필요는 없고, 지금 단계에서 결과를 과신하지 말라는 신호만 남긴다).
-    표준편차가 0이면(전부 동일 값) 0으로 채운다."""
+    표준편차가 0이면(전부 동일 값) 0으로 채운다.
+
+    population_mean/population_std가 주어지면 series 자기 자신이 아니라 그 값으로
+    표준화한다 - 진단 API처럼 1행짜리 series를 표준화할 때, 자기 자신 기준으로
+    표준화하면 표준편차가 항상 0이라 결과가 항상 0이 되는 문제를 피하기 위함이다
+    (population 기준값은 학습 데이터셋 전체에서 미리 계산해 재사용해야 한다)."""
     values = pd.to_numeric(series, errors="coerce")
+
+    if population_mean is not None and population_std is not None:
+        if not population_std or pd.isna(population_std):
+            return pd.Series(0.0, index=series.index)
+        return (values - population_mean) / population_std
+
     n = int(values.notna().sum())
     if 0 < n < min_sample:
         logger.warning(
@@ -368,8 +385,12 @@ def compute_domain_index(
     constituent_columns: list[str],
     protective: set[str] | None = None,
     min_sample: int = DEFAULT_MIN_SAMPLE_FOR_ZSCORE,
+    population_stats: dict[str, tuple[float, float]] | None = None,
 ) -> pd.Series:
-    """구성 변수를 z-score 표준화(보호요인은 부호 반전) 후 단순평균."""
+    """구성 변수를 z-score 표준화(보호요인은 부호 반전) 후 단순평균.
+
+    population_stats가 주어지면(진단 API의 1행 입력 등) 각 구성 변수를 df 자신이
+    아니라 population_stats[col]=(평균, 표준편차) 기준으로 표준화한다."""
     protective = protective or set()
     total = pd.Series(0.0, index=df.index)
     used = 0
@@ -377,7 +398,11 @@ def compute_domain_index(
         if col not in df.columns:
             logger.warning("도메인지수 계산: 구성변수 '%s'가 없어 건너뜁니다.", col)
             continue
-        z = safe_zscore(df[col], min_sample)
+        stats = (population_stats or {}).get(col)
+        if stats is not None:
+            z = safe_zscore(df[col], min_sample, population_mean=stats[0], population_std=stats[1])
+        else:
+            z = safe_zscore(df[col], min_sample)
         if col in protective:
             z = -z
         total = total + z
@@ -387,13 +412,31 @@ def compute_domain_index(
     return total / used
 
 
+def compute_domain_index_population_stats(population_df: pd.DataFrame) -> dict[str, tuple[float, float]]:
+    """도메인지수 구성 변수들의 population 평균/표준편차를 학습 데이터셋(featured_dataset)
+    기준으로 미리 계산해둔다. 진단 API가 1행짜리 입력을 표준화할 때 이 값을 재사용해야
+    "1행짜리 series는 표준편차가 항상 0이라 지수가 항상 0" 문제를 피할 수 있다."""
+    constituent_columns = {col for cols in DOMAIN_INDEX_DEFINITIONS.values() for col in cols}
+    stats: dict[str, tuple[float, float]] = {}
+    for col in constituent_columns:
+        if col not in population_df.columns:
+            continue
+        values = pd.to_numeric(population_df[col], errors="coerce")
+        if values.notna().sum() == 0:
+            continue
+        stats[col] = (float(values.mean()), float(values.std(ddof=0)))
+    return stats
+
+
 def compute_all_domain_indices(
-    df: pd.DataFrame, min_sample: int = DEFAULT_MIN_SAMPLE_FOR_ZSCORE
+    df: pd.DataFrame,
+    min_sample: int = DEFAULT_MIN_SAMPLE_FOR_ZSCORE,
+    population_stats: dict[str, tuple[float, float]] | None = None,
 ) -> pd.DataFrame:
     """도메인 지수 5종(주거비압박/부채상환위험/소득변동성/소비압박/신용취약) 산출.
     df에는 파생변수 14종이 이미 계산되어 있어야 한다(engineer_features 참고)."""
     indices = {
-        name: compute_domain_index(df, cols, PROTECTIVE_FEATURES, min_sample)
+        name: compute_domain_index(df, cols, PROTECTIVE_FEATURES, min_sample, population_stats)
         for name, cols in DOMAIN_INDEX_DEFINITIONS.items()
     }
     return pd.DataFrame(indices, index=df.index)
@@ -409,10 +452,15 @@ def engineer_features(
     config: dict[str, Any] | None = None,
     min_sample_for_zscore: int = DEFAULT_MIN_SAMPLE_FOR_ZSCORE,
     thin_filer_min_train_sample: int = DEFAULT_MIN_TRAIN_SAMPLE_FOR_THIN_FILER_MODEL,
+    domain_index_population_stats: dict[str, tuple[float, float]] | None = None,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
     """Layer 0의 clean_dataset을 입력받아 파생변수 14종 + 도메인지수 5종을 추가한다.
 
     원본 컬럼은 전부 보존하고(삭제 없음), 새 컬럼만 추가한다.
+
+    domain_index_population_stats가 주어지면(진단 API의 1행 입력 등) 도메인지수 5종을
+    df 자신이 아니라 그 population 기준(평균/표준편차)으로 표준화한다
+    (compute_domain_index_population_stats 참고).
     """
     df = df.copy()
     config = config or load_layer0_config()
@@ -430,7 +478,9 @@ def engineer_features(
     )
     notes.append("Thin Filer 보정 스코어 계산 완료")
 
-    domain_indices = compute_all_domain_indices(df, min_sample=min_sample_for_zscore)
+    domain_indices = compute_all_domain_indices(
+        df, min_sample=min_sample_for_zscore, population_stats=domain_index_population_stats
+    )
     for col in domain_indices.columns:
         df[col] = domain_indices[col]
     notes.append(f"도메인지수 5종 계산 완료: {list(domain_indices.columns)}")

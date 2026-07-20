@@ -68,7 +68,7 @@ fun OnboardingScreen(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Checkbox(checked = consentChecked, onCheckedChange = { consentChecked = it })
             Text(
-                text = "개인정보 수집·이용에 동의합니다 (진단 목적에 한해 사용, 언제든 삭제 요청 가능)",
+                text = "개인정보 수집·이용에 동의합니다 (진단 목적에 한해 사용, 회원은 설정에서 즉시 삭제 가능)",
                 style = MaterialTheme.typography.bodyMedium,
             )
         }

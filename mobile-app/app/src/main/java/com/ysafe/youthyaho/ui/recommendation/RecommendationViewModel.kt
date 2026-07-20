@@ -9,6 +9,7 @@ import com.ysafe.youthyaho.data.api.ApiException
 import com.ysafe.youthyaho.data.api.dto.OtherPolicyItemDto
 import com.ysafe.youthyaho.data.api.dto.RecommendationItemDto
 import com.ysafe.youthyaho.data.repository.DiagnosisRepository
+import com.ysafe.youthyaho.data.repository.PolicyDemandRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,10 +25,14 @@ data class RecommendationUiState(
     val errorMessage: String? = null,
     val topRecommendations: List<RecommendationItemDto> = emptyList(),
     val otherPolicies: List<OtherPolicyItemDto> = emptyList(),
+    val demandTriggerReason: String? = null,
+    val demandRewardAmount: Int? = null,
+    val demandCooldownUntil: String? = null,
 )
 
 class RecommendationViewModel(
     private val diagnosisRepository: DiagnosisRepository,
+    private val policyDemandRepository: PolicyDemandRepository,
     private val sessionId: String,
 ) : ViewModel() {
 
@@ -53,6 +58,18 @@ class RecommendationViewModel(
                         topRecommendations = response.recommendations.sortedBy { it.priority }.take(TOP_N),
                         otherPolicies = response.other_policies,
                     )
+                    val reason = when {
+                        response.recommendations.isEmpty() -> "no_recommendation"
+                        response.recommendations.none { it.eligible } -> "no_eligible_policy"
+                        else -> "user_reported_mismatch"
+                    }
+                    policyDemandRepository.eligibility(sessionId, reason).onSuccess { eligibility ->
+                        _uiState.value = _uiState.value.copy(
+                            demandTriggerReason = reason.takeIf { eligibility.eligible },
+                            demandRewardAmount = eligibility.expectedRewardAmount,
+                            demandCooldownUntil = eligibility.cooldownUntil,
+                        )
+                    }
                 },
                 onFailure = { error ->
                     val message = (error as? ApiException)?.message ?: "정책 추천을 불러오지 못했습니다."
@@ -63,9 +80,9 @@ class RecommendationViewModel(
     }
 
     companion object {
-        fun factory(diagnosisRepository: DiagnosisRepository, sessionId: String): ViewModelProvider.Factory =
+        fun factory(diagnosisRepository: DiagnosisRepository, policyDemandRepository: PolicyDemandRepository, sessionId: String): ViewModelProvider.Factory =
             viewModelFactory {
-                initializer { RecommendationViewModel(diagnosisRepository, sessionId) }
+                initializer { RecommendationViewModel(diagnosisRepository, policyDemandRepository, sessionId) }
             }
     }
 }

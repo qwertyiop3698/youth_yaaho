@@ -5,6 +5,8 @@ import com.ysafe.youthyaho.data.api.NetworkModule
 import com.ysafe.youthyaho.data.local.TokenStore
 import com.ysafe.youthyaho.data.repository.AuthRepository
 import com.ysafe.youthyaho.data.repository.DiagnosisRepository
+import com.ysafe.youthyaho.data.repository.PolicyFeedbackRepository
+import com.ysafe.youthyaho.data.repository.PolicyDemandRepository
 
 /**
  * 수동 DI 컨테이너. Hilt는 도입하지 않았다 - 리포지토리/뷰모델 개수가 적어(해커톤
@@ -17,4 +19,6 @@ class AppContainer(context: Context) {
 
     val authRepository = AuthRepository(apiService, tokenStore)
     val diagnosisRepository = DiagnosisRepository(apiService)
+    val policyFeedbackRepository = PolicyFeedbackRepository(apiService)
+    val policyDemandRepository = PolicyDemandRepository(apiService)
 }

@@ -16,12 +16,15 @@ from app.routers import internal
 from app.services.pipeline_store import PipelineStore, get_pipeline_store
 from pipeline.layer3_optimization import run as layer3_run
 
+ADMIN_KEY = "admin-test-key-32-bytes-minimum-value"
+INTERNAL_KEY = "internal-test-key-32-bytes-minimum-value"
+
 
 @pytest.fixture()
 def raw_client(tmp_path, monkeypatch):
     """인증 의존성을 override하지 않은 TestClient. ADMIN/INTERNAL_API_KEY를 설정해둔다."""
-    monkeypatch.setenv("ADMIN_API_KEY", "admin-secret")
-    monkeypatch.setenv("INTERNAL_API_KEY", "internal-secret")
+    monkeypatch.setenv("ADMIN_API_KEY", ADMIN_KEY)
+    monkeypatch.setenv("INTERNAL_API_KEY", INTERNAL_KEY)
 
     store = PipelineStore(data_dir=tmp_path / "empty", policy_catalog_path=layer3_run.DEFAULT_POLICY_CATALOG)
     engine = db.create_db_engine(f"sqlite:///{tmp_path / 'auth_test.db'}")
@@ -46,11 +49,11 @@ class TestAdminAuth:
         assert response.status_code == 401
 
     def test_correct_key_returns_200(self, raw_client):
-        response = raw_client.get("/api/v1/admin/overview", headers={"X-API-Key": "admin-secret"})
+        response = raw_client.get("/api/v1/admin/overview", headers={"X-API-Key": ADMIN_KEY})
         assert response.status_code == 200
 
     def test_internal_key_does_not_work_on_admin(self, raw_client):
-        response = raw_client.get("/api/v1/admin/overview", headers={"X-API-Key": "internal-secret"})
+        response = raw_client.get("/api/v1/admin/overview", headers={"X-API-Key": INTERNAL_KEY})
         assert response.status_code == 401
 
 
@@ -61,7 +64,7 @@ class TestInternalAuth:
 
     def test_admin_key_does_not_work_on_internal(self, raw_client):
         response = raw_client.post(
-            "/api/v1/internal/pipeline/run-optimization", headers={"X-API-Key": "admin-secret"}
+            "/api/v1/internal/pipeline/run-optimization", headers={"X-API-Key": ADMIN_KEY}
         )
         assert response.status_code == 401
 
@@ -70,10 +73,22 @@ class TestInternalAuth:
         monkeypatch.setattr(internal.layer3_run, "run", lambda: {"skipped": True, "reason": "test stub"})
 
         response = raw_client.post(
-            "/api/v1/internal/pipeline/run-optimization", headers={"X-API-Key": "internal-secret"}
+            "/api/v1/internal/pipeline/run-optimization", headers={"X-API-Key": INTERNAL_KEY}
         )
         assert response.status_code == 200
         assert response.json()["skipped"] is True
+
+    def test_concurrent_pipeline_run_is_rejected(self, raw_client):
+        assert internal._pipeline_run_lock.acquire(blocking=False)
+        try:
+            response = raw_client.post(
+                "/api/v1/internal/pipeline/run-optimization",
+                headers={"X-API-Key": INTERNAL_KEY},
+            )
+        finally:
+            internal._pipeline_run_lock.release()
+
+        assert response.status_code == 409
 
 
 class TestKeyNotConfigured:
@@ -89,4 +104,15 @@ class TestKeyNotConfigured:
             response = test_client.get("/api/v1/admin/overview", headers={"X-API-Key": "anything"})
 
         app.dependency_overrides.clear()
+        assert response.status_code == 503
+
+    def test_short_admin_key_fails_closed(self, raw_client, monkeypatch):
+        monkeypatch.setenv("ADMIN_API_KEY", "too-short")
+        response = raw_client.get("/api/v1/admin/overview", headers={"X-API-Key": "too-short"})
+        assert response.status_code == 503
+
+    def test_reused_admin_and_internal_key_fails_closed(self, raw_client, monkeypatch):
+        monkeypatch.setenv("ADMIN_API_KEY", ADMIN_KEY)
+        monkeypatch.setenv("INTERNAL_API_KEY", ADMIN_KEY)
+        response = raw_client.get("/api/v1/admin/overview", headers={"X-API-Key": ADMIN_KEY})
         assert response.status_code == 503

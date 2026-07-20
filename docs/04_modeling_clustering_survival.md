@@ -27,7 +27,7 @@ p(x) = Σ_{k=1}^{K} π_k · N(x | μ_k, Σ_k)
 
 ---
 
-## Layer 2-B: Cox 생존분석 기반 위험 예측
+## Layer 2-B: 프록시 라벨 기반 이진 위험모델
 
 ### 타겟(라벨) 설계 — 가장 중요한 방법론적 정직성 포인트
 
@@ -38,15 +38,18 @@ event = 1 if (연체건수 > 0) or (
     추정DTI >= p75 and 소득증감률 < 0 and 신용평점_하락추정
 ) else 0
 
-duration = 관측시작 ~ event 발생(또는 관측종료)까지 기간(월)
 ```
 
-발표 문구: "실제 정책효과 라벨이 없어, MVP 근사치로 이 프록시를 사용했고, 실제 운영 시엔 3~6개월 후 실연체 발생 여부로 교체 가능하도록 설계했다."
+현재 KCB 샘플은 한 시점의 크로스섹션이며 사건까지 남은 기간(duration)을 관측할
+수 없습니다. 따라서 이 값은 미래 사건 확률이나 인과적 정책효과가 아니라 현재
+프록시 조건을 분류한 점수입니다. 실제 운영 시에는 3~6개월 후 사건 라벨과 반복
+관측 데이터를 확보한 뒤 재학습해야 합니다.
 
 ### 모델
 
-- **주모델**: Cox 비례위험모형 (`lifelines.CoxPHFitter`) — "위험 진입까지 남은 기간"을 추정해 조기경보 컨셉과 모델 산출물을 정합시킴. Hazard ratio로 "이 요인이 위험 진입 속도를 몇 배 높이는가"를 직접 해석 가능.
-- **베이스라인**: 로지스틱 회귀, LightGBM 이진분류. Cox 모델과 AUC/C-index 비교로 방법론 선택의 정당성 확보.
+- **후보 모델**: 로지스틱 회귀와 LightGBM 이진분류.
+- **선택 기준**: held-out PR-AUC가 높은 모델을 선택하고 확률 보정을 적용합니다.
+- Cox 인터페이스는 패널데이터 확보 이후 확장용 스텁이며 현재 기능으로 발표하지 않습니다.
 
 ### 데이터 누수 차단 (필수, 코드 레벨 강제)
 
@@ -59,20 +62,19 @@ assert not any(col in feature_columns for col in LEAKAGE_COLUMNS), \
 ### 검증 전략
 
 - **Spatial CV**: 거주지 시군구코드(또는 확보되면 행정동) 기준으로 fold를 나눠 지역 일반화 성능 확인.
-- **C-index (Concordance Index)**: 생존모델 표준 평가지표.
+- **PR-AUC/AUC-ROC**: 클래스 불균형을 고려해 양성비율 baseline과 함께 제시.
 - **Calibration plot**: 예측 위험도와 실제 관측 사건 발생률 정렬 확인.
-- **Schoenfeld residual test**: Cox 모델의 비례위험 가정 검정. 위반 시 시간의존 Cox 또는 계층화 Cox로 대체.
 
 ### 공정성 감사 (Fairness Audit)
 
-- 성별/연령대 서브그룹별 C-index, calibration 차이 비교. 특정 그룹의 시스템적 과대/과소 위험 판정 여부 확인 후 리포트화.
+- 성별/연령대 서브그룹별 AUC/PR-AUC 차이 비교. 특정 그룹의 시스템적 과대/과소 위험 판정 여부 확인 후 리포트화.
 
 ### 설명력
 
-SHAP(TreeExplainer, LightGBM 베이스라인 기준) 또는 Cox hazard ratio로 개인별 top-3 위험 요인 추출 → Layer 4 입력.
+SHAP(TreeExplainer, LightGBM 기준)으로 개인별 top-3 위험 요인 추출 → Layer 4 입력.
 
 ### 구현 위치
 
 `layer2b_risk_model/cox_trainer.py`, `layer2b_risk_model/baseline_models.py`, `layer2b_risk_model/spatial_cv.py`, `layer2b_risk_model/fairness_audit.py`, `layer2b_risk_model/shap_explainer.py`
 
-출력: `risk_model.pkl`, `risk_scores.parquet` (person_id, hazard_months, shap_top3 JSON)
+출력: `risk_model.pkl`, `risk_scores.parquet` (event_probability, shap_top3 JSON)

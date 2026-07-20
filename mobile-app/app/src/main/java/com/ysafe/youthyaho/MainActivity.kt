@@ -35,6 +35,8 @@ class MainActivity : ComponentActivity() {
                         navController = navController,
                         authRepository = container.authRepository,
                         diagnosisRepository = container.diagnosisRepository,
+                        policyFeedbackRepository = container.policyFeedbackRepository,
+                        policyDemandRepository = container.policyDemandRepository,
                         tokenStore = container.tokenStore,
                         modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing),
                     )

@@ -32,6 +32,9 @@ object NetworkModule {
                 tokenStore.saveTokens(tokens.access_token, tokens.refresh_token)
                 tokens.access_token
             } else {
+                // 회전 후 재사용되었거나 로그아웃으로 폐기된 refresh token이면 로컬
+                // 로그인 상태도 즉시 정리한다. 일시적 5xx에는 토큰을 보존한다.
+                if (response.code() == 401 || response.code() == 403) tokenStore.clear()
                 null
             }
         }
@@ -46,7 +49,8 @@ object NetworkModule {
 
     private fun baseClientBuilder(): OkHttpClient.Builder {
         val logging = HttpLoggingInterceptor().apply {
-            level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.NONE
+            // BODY는 로그인 비밀번호와 토큰 응답까지 로그에 남길 수 있으므로 금지한다.
+            level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BASIC else HttpLoggingInterceptor.Level.NONE
         }
         return OkHttpClient.Builder().addInterceptor(logging)
     }

@@ -118,6 +118,46 @@ class TestLoginAndDiagnoseIntegration:
             )
         assert row["user_id"] is not None
 
+    def test_member_session_requires_owner_token(self, client):
+        owner_tokens = self._signup_and_login(client, "session_owner@test.com")
+        other_tokens = self._signup_and_login(client, "session_other@test.com")
+        session_id = client.post(
+            "/api/v1/citizen/diagnose",
+            json=DIAGNOSE_PAYLOAD,
+            headers={"Authorization": f"Bearer {owner_tokens['access_token']}"},
+        ).json()["session_id"]
+
+        assert client.get(f"/api/v1/citizen/{session_id}/history").status_code == 401
+        assert client.get(
+            f"/api/v1/citizen/{session_id}/history",
+            headers={"Authorization": f"Bearer {other_tokens['access_token']}"},
+        ).status_code == 403
+        assert client.get(
+            f"/api/v1/citizen/{session_id}/history",
+            headers={"Authorization": f"Bearer {owner_tokens['access_token']}"},
+        ).status_code == 200
+
+    def test_delete_account_removes_user_and_linked_sessions(self, client):
+        tokens = self._signup_and_login(client, "delete_me@test.com")
+        session_id = client.post(
+            "/api/v1/citizen/diagnose",
+            json=DIAGNOSE_PAYLOAD,
+            headers={"Authorization": f"Bearer {tokens['access_token']}"},
+        ).json()["session_id"]
+
+        response = client.delete(
+            "/api/v1/citizen/auth/me",
+            headers={"Authorization": f"Bearer {tokens['access_token']}"},
+        )
+        assert response.status_code == 204
+        with client.engine.connect() as conn:
+            assert conn.execute(
+                db.users_table.select().where(db.users_table.c.email == "delete_me@test.com")
+            ).first() is None
+            assert conn.execute(
+                db.citizen_sessions.select().where(db.citizen_sessions.c.session_id == session_id)
+            ).first() is None
+
     def test_expired_access_token_rejected_on_diagnose(self, client):
         tokens = self._signup_and_login(client, "expired_route@test.com")
         payload = auth_service.decode_token(tokens["access_token"], "access")
@@ -211,6 +251,11 @@ class TestRefresh:
         assert response.status_code == 200
         assert response.json()["access_token"]
 
+        replay = client.post(
+            "/api/v1/citizen/auth/refresh", json={"refresh_token": tokens["refresh_token"]}
+        )
+        assert replay.status_code == 401
+
     def test_refresh_rejects_expired_refresh_token(self, client):
         tokens = self._signup_and_login(client, "refresh_expired_route@test.com")
         payload = auth_service.decode_token(tokens["refresh_token"], "refresh")
@@ -229,3 +274,25 @@ class TestRefresh:
 
         response = client.post("/api/v1/citizen/auth/refresh", json={"refresh_token": tokens["refresh_token"]})
         assert response.status_code == 401
+
+
+class TestLogout:
+    def test_logout_revokes_access_and_refresh_tokens(self, client):
+        helper = TestLoginAndDiagnoseIntegration()
+        tokens = helper._signup_and_login(client, "logout_route@test.com")
+
+        response = client.post(
+            "/api/v1/citizen/auth/logout",
+            headers={"Authorization": f"Bearer {tokens['access_token']}"},
+        )
+        assert response.status_code == 204
+
+        assert client.post(
+            "/api/v1/citizen/diagnose",
+            json=DIAGNOSE_PAYLOAD,
+            headers={"Authorization": f"Bearer {tokens['access_token']}"},
+        ).status_code == 401
+        assert client.post(
+            "/api/v1/citizen/auth/refresh",
+            json={"refresh_token": tokens["refresh_token"]},
+        ).status_code == 401

@@ -49,7 +49,7 @@ def _build_user_message(
         lines.append(f"- 가장 가까운 유형: {top_cluster}")
 
     if risk_probability is not None:
-        lines.append(f"- 경제위험 확률(0~1 범위, 높을수록 위험): {risk_probability:.2f}")
+        lines.append(f"- 현재 프록시 위험점수(0~1 범위, 미래 사건 확률 아님): {risk_probability:.2f}")
 
     if assigned_policies:
         lines.append(f"- 지금 신청 가능한 정책: {', '.join(assigned_policies)}")

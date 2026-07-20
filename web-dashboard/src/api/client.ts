@@ -46,6 +46,15 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export const apiGet = <T>(path: string): Promise<T> => request<T>(path)
 
+export async function apiDownload(path: string): Promise<Blob> {
+  const apiKey = useAuthStore.getState().apiKey
+  const headers = new Headers()
+  if (apiKey) headers.set('X-API-Key', apiKey)
+  const response = await fetch(`${BASE_URL}${path}`, { headers })
+  if (!response.ok) throw new ApiError(response.status, `다운로드가 실패했습니다 (HTTP ${response.status}).`)
+  return response.blob()
+}
+
 export const apiPost = <T>(path: string, body?: unknown): Promise<T> =>
   request<T>(path, {
     method: 'POST',

@@ -7,6 +7,8 @@ import { PolicyGaps } from './pages/PolicyGaps/PolicyGaps'
 import { BudgetSimulator } from './pages/BudgetSimulator/BudgetSimulator'
 import { Clusters } from './pages/Clusters/Clusters'
 import { BanditStatus } from './pages/BanditStatus/BanditStatus'
+import { PolicyFeedback } from './pages/PolicyFeedback/PolicyFeedback'
+import { PolicyDemand } from './pages/PolicyDemand/PolicyDemand'
 
 function App() {
   return (
@@ -18,6 +20,8 @@ function App() {
         <Route path="/budget-simulator" element={<BudgetSimulator />} />
         <Route path="/clusters" element={<Clusters />} />
         <Route path="/bandit-status" element={<BanditStatus />} />
+        <Route path="/policy-feedback" element={<PolicyFeedback />} />
+        <Route path="/policy-demand" element={<PolicyDemand />} />
         <Route path="/report-export" element={<ComingSoon title="리포트 내보내기" />} />
       </Route>
     </Routes>

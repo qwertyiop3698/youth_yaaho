@@ -45,6 +45,8 @@ class TestPolicyGaps:
         body = response.json()
         assert body["ready"] is True
         assert body["n_high_risk"] >= body["n_high_risk_without_policy"]
+        assert "person_ids" not in body
+        assert isinstance(body["regions"], list)
 
 
 class TestPolicyCatalog:
@@ -98,7 +100,8 @@ class TestReportExport:
         response = client.post("/api/v1/admin/report/export?format=csv")
         assert response.status_code == 200
         assert response.headers["content-type"].startswith("text/csv")
-        assert "person_id" in response.text
+        assert "person_id" not in response.text
+        assert "n_assignments" in response.text
 
     def test_json_export(self, client):
         response = client.post("/api/v1/admin/report/export?format=json")

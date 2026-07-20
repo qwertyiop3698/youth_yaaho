@@ -27,7 +27,7 @@
    │       - 파생변수 15종, 도메인 지수 5종                 │
    │                     ↓                            │
    │   Layer 2-A. GMM 소프트 클러스터링 (유형 발견)          │
-   │   Layer 2-B. Cox 생존분석 + LGBM 베이스라인 + SHAP    │
+   │   Layer 2-B. 로지스틱/LGBM 이진모델 + SHAP             │
    │                     ↓                            │
    │   Layer 3. 최적화 엔진                              │
    │       3-A. LP 기반 예산 배정 (PuLP)                  │
@@ -37,8 +37,8 @@
    └───────────────────┬──────────────────────────────┘
                        ↓
         ┌───────────────────────────────┐
-        │ PostgreSQL (원본데이터, 배정결과)   │
-        │ Redis (세션, 캐시, 실시간 스코어)   │
+        │ SQLite (MVP 계정·진단 세션)          │
+        │ Parquet/PKL (배치 산출물)             │
         └───────────────────────────────┘
 ```
 
@@ -55,10 +55,10 @@
 |---|---|---|
 | 백엔드 API | FastAPI | |
 | 데이터 처리 | pandas / polars | |
-| 모델링 | scikit-learn(GMM), lifelines(Cox), lightgbm, shap | |
+| 모델링 | scikit-learn(GMM/로지스틱), lightgbm, shap | |
 | 최적화 | PuLP(LP), 자체 구현 Thompson Sampling(numpy/scipy) | |
-| 저장 | PostgreSQL (+ pgvector 선택) | |
-| 캐시 | Redis | |
+| 저장 | SQLite(MVP), PostgreSQL은 운영 확장 | |
+| 캐시 | 프로세스 메모리(MVP), Redis는 운영 확장 | |
 | LLM | Claude API | 설명 에이전트 |
 | 웹 프론트 | React + Vite + Tailwind + recharts + Kakao Map SDK | |
 | 앱 | Kotlin Compose + Retrofit + Coroutines/Flow | |
@@ -70,7 +70,7 @@
 | Layer 0 | raw CSV | `clean_dataset.parquet` (결측처리+플래그 컬럼 포함), `profiling_report.json` |
 | Layer 1 | clean_dataset | `featured_dataset.parquet` (파생변수+도메인지수 5종 포함) |
 | Layer 2-A | featured_dataset (도메인지수) | `cluster_model.pkl`, `cluster_membership.parquet` |
-| Layer 2-B | featured_dataset | `risk_model.pkl`, `risk_scores.parquet` (hazard_months, shap_top3 포함) |
+| Layer 2-B | featured_dataset | `risk_model.pkl`, `risk_scores.parquet` (프록시 event_probability, shap_top3) |
 | Layer 3-A | risk_scores + cluster_membership + policy_catalog | `assignment_result.parquet` |
 | Layer 3-B | assignment_result + 합성 리워드 | `bandit_state.json`, regret curve 데이터 |
 | Layer 4 | shap_top3 + cluster_membership + assigned_policies | 자연어 설명 텍스트 (API 응답에 포함, 별도 저장 불필요) |

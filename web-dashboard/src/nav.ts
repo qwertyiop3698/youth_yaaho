@@ -16,5 +16,7 @@ export const NAV_ITEMS: NavItem[] = [
   { path: '/budget-simulator', label: '예산 시뮬레이터', implemented: true },
   { path: '/clusters', label: '유형별 상세', implemented: true },
   { path: '/bandit-status', label: '밴딧 학습 현황', implemented: true },
+  { path: '/policy-feedback', label: '정책 피드백 분석', implemented: true },
+  { path: '/policy-demand', label: '정책 미충족 수요', implemented: true },
   { path: '/report-export', label: '리포트 내보내기', implemented: false },
 ]

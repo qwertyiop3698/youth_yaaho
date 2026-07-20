@@ -29,6 +29,7 @@ class DiagnosisRepositoryTest {
     fun `diagnose returns success body`() = runTest {
         val expected = DiagnoseResponseDto(
             session_id = "s1",
+            session_access_token = "secret-s1",
             domain_indices = mapOf("주거비압박지수" to 1.2f),
             cluster_membership = mapOf("주거비압박형" to 0.6f),
             risk_probability = 0.4f,
@@ -47,6 +48,7 @@ class DiagnosisRepositoryTest {
     fun `diagnose success caches result by session id`() = runTest {
         val expected = DiagnoseResponseDto(
             session_id = "s2",
+            session_access_token = "secret-s2",
             domain_indices = mapOf("신용취약지수" to -0.3f),
             cluster_membership = mapOf("자산형성가능형" to 0.9f),
             risk_probability = 0.1f,
@@ -82,7 +84,7 @@ class DiagnosisRepositoryTest {
             ),
         )
         val expected = RecommendationsResponseDto(items)
-        coEvery { api.recommendations("s1") } returns Response.success(expected)
+        coEvery { api.recommendations("s1", null) } returns Response.success(expected)
 
         val result = repository.getRecommendations("s1")
 
@@ -93,7 +95,7 @@ class DiagnosisRepositoryTest {
     @Test
     fun `getRecommendations surfaces 404 for unknown session`() = runTest {
         val errorBody = "{\"detail\": \"session_id를 찾을 수 없습니다.\"}".toResponseBody("application/json".toMediaType())
-        coEvery { api.recommendations("unknown") } returns Response.error(404, errorBody)
+        coEvery { api.recommendations("unknown", null) } returns Response.error(404, errorBody)
 
         val result = repository.getRecommendations("unknown")
 
@@ -126,7 +128,7 @@ class DiagnosisRepositoryTest {
             explanation = "주거비 부담이 커서 이 정책을 추천했어요.",
             is_llm_generated = true,
         )
-        coEvery { api.explanation("s1") } returns Response.success(expected)
+        coEvery { api.explanation("s1", null) } returns Response.success(expected)
 
         val result = repository.getExplanation("s1")
 
@@ -137,7 +139,7 @@ class DiagnosisRepositoryTest {
     @Test
     fun `getExplanation surfaces 404 for unknown session`() = runTest {
         val errorBody = "{\"detail\": \"session_id를 찾을 수 없습니다.\"}".toResponseBody("application/json".toMediaType())
-        coEvery { api.explanation("unknown") } returns Response.error(404, errorBody)
+        coEvery { api.explanation("unknown", null) } returns Response.error(404, errorBody)
 
         val result = repository.getExplanation("unknown")
 
@@ -155,7 +157,7 @@ class DiagnosisRepositoryTest {
             history = listOf(HistoryEntryDto(created_at = "2026-07-10T00:00:00Z", diagnosis_result = diagnosisResult)),
             note = "현재는 session_id 기준 단일 진단만 저장됩니다.",
         )
-        coEvery { api.history("s1") } returns Response.success(expected)
+        coEvery { api.history("s1", null) } returns Response.success(expected)
 
         val result = repository.getHistory("s1")
 
@@ -166,7 +168,7 @@ class DiagnosisRepositoryTest {
     @Test
     fun `getHistory surfaces 404 for unknown session`() = runTest {
         val errorBody = "{\"detail\": \"session_id를 찾을 수 없습니다.\"}".toResponseBody("application/json".toMediaType())
-        coEvery { api.history("unknown") } returns Response.error(404, errorBody)
+        coEvery { api.history("unknown", null) } returns Response.error(404, errorBody)
 
         val result = repository.getHistory("unknown")
 

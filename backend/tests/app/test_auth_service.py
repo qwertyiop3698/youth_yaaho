@@ -59,11 +59,10 @@ class TestSignup:
         with pytest.raises(auth_service.AgeLimitExceededError):
             auth_service.signup(engine, "old@test.com", "password1234", birthdate, "26440")
 
-    def test_signup_succeeds_for_age_0(self, engine):
-        # 경계값: 상한(39세) 아래는 문제 없이 통과해야 함
+    def test_signup_rejected_for_minor(self, engine):
         birthdate = _birthdate_for_age(0)
-        result = auth_service.signup(engine, "baby@test.com", "password1234", birthdate, None)
-        assert result["is_age_verified"] is False
+        with pytest.raises(auth_service.AgeLimitExceededError):
+            auth_service.signup(engine, "baby@test.com", "password1234", birthdate, None)
 
     def test_duplicate_email_rejected(self, engine):
         birthdate = _birthdate_for_age(25)
