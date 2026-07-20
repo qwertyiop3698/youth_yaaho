@@ -8,7 +8,7 @@ DIVE 2026 해커톤(부산광역시 × KCB) 출품작. KCB 금융 데이터를 �
 
 - **시민용 앱**: "청년야호" (Kotlin Compose, Android 네이티브)
 - **정부용 웹 대시보드**: "Y-SAFE 대시보드" (React)
-- **공통 백엔드**: FastAPI + PostgreSQL + Redis
+- **공통 백엔드**: FastAPI + SQLite(MVP). PostgreSQL/Redis는 운영 전환 시 확장
 
 ## 지금 상황 (중요)
 

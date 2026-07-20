@@ -4,15 +4,19 @@ import com.ysafe.youthyaho.MainDispatcherRule
 import com.ysafe.youthyaho.data.local.TokenStore
 import com.ysafe.youthyaho.data.repository.AuthRepository
 import io.mockk.coVerify
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.advanceUntilIdle
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class SettingsViewModelTest {
 
     @get:Rule
@@ -46,15 +50,18 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun `delete request flow shows dialog then marks submitted on confirm`() = runTest {
-        val vm = viewModel()
+    fun `delete request flow calls server and marks account deleted`() = runTest {
+        coEvery { authRepository.deleteAccount() } returns Result.success(Unit)
+        val vm = viewModel(isLoggedIn = true)
 
         vm.requestDeleteAccount()
         assertTrue(vm.uiState.value.showDeleteConfirmDialog)
 
         vm.confirmDeleteRequest()
+        advanceUntilIdle()
         assertFalse(vm.uiState.value.showDeleteConfirmDialog)
-        assertTrue(vm.uiState.value.deleteRequestSubmitted)
+        assertTrue(vm.uiState.value.accountDeleted)
+        coVerify { authRepository.deleteAccount() }
     }
 
     @Test
@@ -65,7 +72,7 @@ class SettingsViewModelTest {
         vm.dismissDeleteDialog()
 
         assertFalse(vm.uiState.value.showDeleteConfirmDialog)
-        assertFalse(vm.uiState.value.deleteRequestSubmitted)
+        assertFalse(vm.uiState.value.accountDeleted)
     }
 
     @Test

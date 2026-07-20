@@ -40,6 +40,22 @@ suspend fun <T> apiResultOf(call: suspend () -> Response<T>): Result<T> {
     }
 }
 
+/** 204 No Content처럼 성공 본문이 없는 API를 Result<Unit>으로 변환한다. */
+suspend fun apiUnitResultOf(call: suspend () -> Response<Unit>): Result<Unit> {
+    return try {
+        val response = call()
+        if (response.isSuccessful) {
+            Result.success(Unit)
+        } else {
+            val detail = parseDetail(response.errorBody()?.string())
+                ?: "요청이 실패했습니다 (HTTP ${response.code()})."
+            Result.failure(ApiException(response.code(), detail))
+        }
+    } catch (e: IOException) {
+        Result.failure(ApiException(0, "서버에 연결할 수 없습니다. 네트워크 상태를 확인해주세요."))
+    }
+}
+
 private fun parseDetail(rawBody: String?): String? {
     if (rawBody.isNullOrBlank()) return null
     return try {

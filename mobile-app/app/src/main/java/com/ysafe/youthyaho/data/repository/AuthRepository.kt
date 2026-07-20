@@ -2,6 +2,7 @@ package com.ysafe.youthyaho.data.repository
 
 import com.ysafe.youthyaho.data.api.CitizenApiService
 import com.ysafe.youthyaho.data.api.apiResultOf
+import com.ysafe.youthyaho.data.api.apiUnitResultOf
 import com.ysafe.youthyaho.data.api.dto.LoginRequestDto
 import com.ysafe.youthyaho.data.api.dto.SignupRequestDto
 import com.ysafe.youthyaho.data.api.dto.SignupResponseDto
@@ -36,6 +37,12 @@ class AuthRepository(
             .map { tokens -> tokenStore.saveTokens(tokens.access_token, tokens.refresh_token) }
 
     suspend fun logout() {
+        // 서버에서 access/refresh 버전을 먼저 폐기한다. 네트워크 실패 여부와 무관하게
+        // 이 기기의 토큰은 지워 사용자가 로그아웃 상태로 빠져나올 수 있게 한다.
+        apiUnitResultOf { api.logout() }
         tokenStore.clear()
     }
+
+    suspend fun deleteAccount(): Result<Unit> =
+        apiUnitResultOf { api.deleteAccount() }.onSuccess { tokenStore.clear() }
 }

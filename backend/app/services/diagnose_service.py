@@ -174,7 +174,9 @@ def diagnose(payload: DiagnoseRequest, store: PipelineStore) -> dict[str, Any]:
 
     reference = build_population_reference(featured_df, layer0_config)
     input_row = build_approximate_input_row(payload, featured_df, layer0_config)
-    engineered_row, _ = fe.engineer_features(input_row, layer0_config)
+    engineered_row, _ = fe.engineer_features(
+        input_row, layer0_config, domain_index_population_stats=store.domain_index_population_stats
+    )
 
     domain_indices = {
         col: float(engineered_row.iloc[0][col])

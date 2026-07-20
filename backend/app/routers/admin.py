@@ -12,7 +12,7 @@ from __future__ import annotations
 import copy
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 
 from pipeline.layer0_data_contract import cleaner as layer0_cleaner
@@ -48,7 +48,10 @@ def overview(store: PipelineStore = Depends(get_pipeline_store)) -> dict[str, An
 
 
 @router.get("/risk-map")
-def risk_map(level: str = "sigungu", store: PipelineStore = Depends(get_pipeline_store)) -> dict[str, Any]:
+def risk_map(
+    level: str = Query(default="sigungu", pattern="^(dong|sigungu)$"),
+    store: PipelineStore = Depends(get_pipeline_store),
+) -> dict[str, Any]:
     featured_df = store.featured_dataset
     risk_scores = store.risk_scores
     if featured_df is None or risk_scores is None:
@@ -87,8 +90,11 @@ def clusters(store: PipelineStore = Depends(get_pipeline_store)) -> dict[str, An
 
 
 @router.get("/policy-gaps")
-def policy_gaps(risk_threshold: float = 0.6, store: PipelineStore = Depends(get_pipeline_store)) -> dict[str, Any]:
-    """위험점수 상위 + 아직 정책이 배정되지 않은 사람들(정책 사각지대, docs/10)."""
+def policy_gaps(
+    risk_threshold: float = Query(default=0.6, ge=0.0, le=1.0),
+    store: PipelineStore = Depends(get_pipeline_store),
+) -> dict[str, Any]:
+    """정책 사각지대를 개인 ID 없이 지역별 집계로만 반환한다."""
     risk_scores = store.risk_scores
     if risk_scores is None:
         return _not_ready("risk_scores가 없습니다(Layer2-B 미실행 또는 표본부족).")
@@ -98,12 +104,25 @@ def policy_gaps(risk_threshold: float = 0.6, store: PipelineStore = Depends(get_
     assigned_ids = set(assignment_results["person_id"].unique()) if assignment_results is not None else set()
     gap_ids = [i for i in high_risk_idx if i not in assigned_ids]
 
+    regions: list[dict[str, Any]] = []
+    featured_df = store.featured_dataset
+    if featured_df is not None:
+        join_cols = layer0_cleaner.resolve_join_columns(store.layer0_config)
+        _, sigungu_col = join_cols.get("residence", (None, None))
+        if sigungu_col and sigungu_col in featured_df.columns:
+            gap_regions = featured_df.loc[featured_df.index.intersection(gap_ids), sigungu_col]
+            counts = gap_regions.dropna().astype(str).value_counts()
+            regions = [
+                {"region_code": region_code, "n_high_risk_without_policy": int(count)}
+                for region_code, count in counts.items()
+            ]
+
     return {
         "ready": True,
         "risk_threshold": risk_threshold,
         "n_high_risk": int(len(high_risk_idx)),
         "n_high_risk_without_policy": len(gap_ids),
-        "person_ids": [str(i) for i in gap_ids][:100],
+        "regions": regions,
     }
 
 
@@ -141,6 +160,9 @@ def simulate_budget(
     df = featured_df.join(risk_scores[["event_probability"]], how="left")
 
     custom_catalog = copy.deepcopy(store.policy_catalog)
+    unknown_policies = sorted(set(payload.policy_budgets) - set(custom_catalog["policies"]))
+    if unknown_policies:
+        raise HTTPException(status_code=422, detail=f"알 수 없는 정책명입니다: {unknown_policies}")
     for policy_name, new_budget in payload.policy_budgets.items():
         if policy_name in custom_catalog["policies"]:
             custom_catalog["policies"][policy_name]["budget_cap"] = new_budget
@@ -172,12 +194,22 @@ def export_report(format: str = "csv", store: PipelineStore = Depends(get_pipeli
     if assignment_df is None:
         return _not_ready("assignment_results가 없습니다(Layer3 미실행).")
 
+    # 관리자 다운로드도 개인 raw ID를 내보내지 않고 정책/검증상태별 집계만 제공한다.
+    report_df = (
+        assignment_df.groupby(["policy", "eligibility_confidence"], dropna=False)
+        .agg(
+            n_assignments=("person_id", "count"),
+            avg_experimental_fit=("delta_risk", "mean"),
+        )
+        .reset_index()
+    )
+
     if format == "csv":
-        csv_bytes = assignment_df.to_csv(index=False).encode("utf-8-sig")
+        csv_bytes = report_df.to_csv(index=False).encode("utf-8-sig")
         return Response(
             content=csv_bytes,
             media_type="text/csv",
-            headers={"Content-Disposition": "attachment; filename=assignment_results.csv"},
+            headers={"Content-Disposition": "attachment; filename=assignment_summary.csv"},
         )
 
-    return {"ready": True, "format": "json", "rows": assignment_df.to_dict(orient="records")}
+    return {"ready": True, "format": "json", "rows": report_df.to_dict(orient="records")}

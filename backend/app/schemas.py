@@ -9,16 +9,33 @@ LightGBM 모델은 ~70개 피처가 필요하다. 이 간극은 diagnose_service
 from __future__ import annotations
 
 from datetime import date
+import math
+import re
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class SignupRequest(BaseModel):
-    email: str = Field(..., examples=["youth@example.com"])
-    password: str = Field(..., min_length=8, examples=["password1234"])
+    email: str = Field(..., min_length=3, max_length=254, examples=["youth@example.com"])
+    password: str = Field(..., min_length=8, max_length=128, examples=["password1234"])
     birthdate: date = Field(..., examples=["2000-01-01"])
-    dong_code: str | None = Field(default=None, examples=["26440"])
+    dong_code: str | None = Field(default=None, pattern=r"^\d{5,10}$", examples=["26440"])
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", normalized):
+            raise ValueError("올바른 이메일 형식이 아닙니다.")
+        return normalized
+
+    @field_validator("password")
+    @classmethod
+    def validate_bcrypt_password_length(cls, value: str) -> str:
+        if len(value.encode("utf-8")) > 72:
+            raise ValueError("비밀번호는 UTF-8 기준 72바이트 이하여야 합니다.")
+        return value
 
 
 class SignupResponse(BaseModel):
@@ -28,12 +45,24 @@ class SignupResponse(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    email: str
-    password: str
+    email: str = Field(..., min_length=3, max_length=254)
+    password: str = Field(..., min_length=1, max_length=128)
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        return value.strip().lower()
+
+    @field_validator("password")
+    @classmethod
+    def validate_bcrypt_password_length(cls, value: str) -> str:
+        if len(value.encode("utf-8")) > 72:
+            raise ValueError("비밀번호는 UTF-8 기준 72바이트 이하여야 합니다.")
+        return value
 
 
 class RefreshRequest(BaseModel):
-    refresh_token: str
+    refresh_token: str = Field(..., min_length=1, max_length=4096)
 
 
 class TokenResponse(BaseModel):
@@ -43,15 +72,24 @@ class TokenResponse(BaseModel):
 
 
 class DiagnoseRequest(BaseModel):
-    age_group: str = Field(..., examples=["25-29"])
-    dong_code: str = Field(..., examples=["26440"])
-    income_band: str = Field(..., examples=["2500-3000"])
-    housing_type: str = Field(..., examples=["월세"])
+    age_group: str = Field(..., pattern=r"^(19-24|25-29|30-34|35-39)$", examples=["25-29"])
+    dong_code: str = Field(..., pattern=r"^26\d{3}$", examples=["26440"])
+    income_band: str = Field(..., pattern=r"^\d{1,5}-\d{1,5}$", examples=["2500-3000"])
+    housing_type: str = Field(..., pattern=r"^(자가|전세|월세|기타)$", examples=["월세"])
     has_debt: bool = False
+
+    @field_validator("income_band")
+    @classmethod
+    def validate_income_band(cls, value: str) -> str:
+        lower, upper = (int(part) for part in value.split("-", 1))
+        if lower > upper:
+            raise ValueError("소득 구간의 최솟값은 최댓값보다 클 수 없습니다.")
+        return value
 
 
 class DiagnoseResponse(BaseModel):
     session_id: str
+    session_access_token: str | None = None
     domain_indices: dict[str, float]
     cluster_membership: dict[str, float]
     risk_probability: float | None = None
@@ -105,6 +143,16 @@ class HistoryResponse(BaseModel):
 
 class SimulateBudgetRequest(BaseModel):
     policy_budgets: dict[str, float]
+
+    @field_validator("policy_budgets")
+    @classmethod
+    def validate_policy_budgets(cls, value: dict[str, float]) -> dict[str, float]:
+        for policy_name, budget in value.items():
+            if not policy_name.strip():
+                raise ValueError("정책명은 비어 있을 수 없습니다.")
+            if not math.isfinite(budget) or budget < 0 or budget > 10_000_000_000_000:
+                raise ValueError("정책 예산은 0 이상 10조 원 이하의 유한한 값이어야 합니다.")
+        return value
 
 
 class SimulateBudgetResponse(BaseModel):

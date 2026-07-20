@@ -92,8 +92,11 @@ class AuthRepositoryTest {
 
     @Test
     fun `logout clears token store`() = runTest {
+        coEvery { api.logout() } returns Response.success(Unit)
+
         repository.logout()
 
+        coVerify { api.logout() }
         coVerify { tokenStore.clear() }
     }
 }

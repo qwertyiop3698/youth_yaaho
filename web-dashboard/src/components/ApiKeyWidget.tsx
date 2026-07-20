@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useAuthStore } from '../store/authStore'
 
-// 최소 구현 로그인: admin API 키를 입력받아 localStorage(zustand persist)에 저장하고,
+// 최소 구현 로그인: admin API 키를 현재 탭 메모리에만 보관하고,
 // 이후 모든 admin API 요청에 X-API-Key 헤더로 실어보낸다(app/auth.py 참고).
 // 별도 /login 라우트가 아니라 헤더에 항상 떠 있는 위젯으로 둔 이유는 어떤 화면도
 // 로그인으로 막혀있지 않기 때문 - 화면 우선순위상 "로그인" 차례가 오면 이 위젯을

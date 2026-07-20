@@ -1,3 +1,4 @@
+from app import db
 from pipeline.layer4_explanation import explanation_agent
 
 DIAGNOSE_PAYLOAD = {
@@ -7,6 +8,11 @@ DIAGNOSE_PAYLOAD = {
     "housing_type": "월세",
     "has_debt": True,
 }
+
+
+def _anonymous_session(client) -> tuple[str, dict[str, str]]:
+    body = client.post("/api/v1/citizen/diagnose", json=DIAGNOSE_PAYLOAD).json()
+    return body["session_id"], {"X-Session-Token": body["session_access_token"]}
 
 
 class TestDiagnoseEndpoint:
@@ -39,8 +45,8 @@ class TestDiagnoseEndpoint:
 
 class TestRecommendationsEndpoint:
     def test_returns_ranked_policies_with_eligibility(self, client):
-        session_id = client.post("/api/v1/citizen/diagnose", json=DIAGNOSE_PAYLOAD).json()["session_id"]
-        response = client.get(f"/api/v1/citizen/{session_id}/recommendations")
+        session_id, headers = _anonymous_session(client)
+        response = client.get(f"/api/v1/citizen/{session_id}/recommendations", headers=headers)
         assert response.status_code == 200
         recs = response.json()["recommendations"]
 
@@ -59,9 +65,9 @@ class TestRecommendationsEndpoint:
 
 class TestExplanationEndpoint:
     def test_generates_and_caches_explanation(self, client):
-        session_id = client.post("/api/v1/citizen/diagnose", json=DIAGNOSE_PAYLOAD).json()["session_id"]
+        session_id, headers = _anonymous_session(client)
 
-        r1 = client.get(f"/api/v1/citizen/{session_id}/explanation")
+        r1 = client.get(f"/api/v1/citizen/{session_id}/explanation", headers=headers)
         assert r1.status_code == 200
         body1 = r1.json()
         assert body1["is_llm_generated"] is False
@@ -69,7 +75,7 @@ class TestExplanationEndpoint:
         # doc06: 낙인 문구 금지
         assert "고위험군" not in body1["explanation"]
 
-        r2 = client.get(f"/api/v1/citizen/{session_id}/explanation")
+        r2 = client.get(f"/api/v1/citizen/{session_id}/explanation", headers=headers)
         assert r2.json()["explanation"] == body1["explanation"]  # 캐싱 확인
 
     def test_unknown_session_returns_404(self, client):
@@ -80,9 +86,9 @@ class TestExplanationEndpoint:
         monkeypatch.setattr(
             explanation_agent, "generate_explanation", lambda **kwargs: "Claude가 생성한 설명입니다."
         )
-        session_id = client.post("/api/v1/citizen/diagnose", json=DIAGNOSE_PAYLOAD).json()["session_id"]
+        session_id, headers = _anonymous_session(client)
 
-        r1 = client.get(f"/api/v1/citizen/{session_id}/explanation")
+        r1 = client.get(f"/api/v1/citizen/{session_id}/explanation", headers=headers)
         assert r1.status_code == 200
         body1 = r1.json()
         assert body1["is_llm_generated"] is True
@@ -94,14 +100,14 @@ class TestExplanationEndpoint:
             "generate_explanation",
             lambda **kwargs: (_ for _ in ()).throw(AssertionError("캐시 히트 시 재호출되면 안 됨")),
         )
-        r2 = client.get(f"/api/v1/citizen/{session_id}/explanation")
+        r2 = client.get(f"/api/v1/citizen/{session_id}/explanation", headers=headers)
         assert r2.json() == body1
 
 
 class TestHistoryEndpoint:
     def test_returns_stored_diagnosis(self, client):
-        session_id = client.post("/api/v1/citizen/diagnose", json=DIAGNOSE_PAYLOAD).json()["session_id"]
-        response = client.get(f"/api/v1/citizen/{session_id}/history")
+        session_id, headers = _anonymous_session(client)
+        response = client.get(f"/api/v1/citizen/{session_id}/history", headers=headers)
         assert response.status_code == 200
         body = response.json()
         assert len(body["history"]) == 1
@@ -110,3 +116,26 @@ class TestHistoryEndpoint:
     def test_unknown_session_returns_404(self, client):
         response = client.get("/api/v1/citizen/no-such-session/history")
         assert response.status_code == 404
+
+    def test_anonymous_session_requires_separate_secret_and_stores_only_hash(self, client):
+        body = client.post("/api/v1/citizen/diagnose", json=DIAGNOSE_PAYLOAD).json()
+        session_id = body["session_id"]
+        token = body["session_access_token"]
+
+        assert token
+        assert client.get(f"/api/v1/citizen/{session_id}/history").status_code == 401
+        assert client.get(
+            f"/api/v1/citizen/{session_id}/history",
+            headers={"X-Session-Token": "wrong-token"},
+        ).status_code == 401
+        assert client.get(
+            f"/api/v1/citizen/{session_id}/history",
+            headers={"X-Session-Token": token},
+        ).status_code == 200
+
+        with client.engine.connect() as conn:
+            row = conn.execute(
+                db.citizen_sessions.select().where(db.citizen_sessions.c.session_id == session_id)
+            ).mappings().first()
+        assert row["access_token_hash"]
+        assert row["access_token_hash"] != token

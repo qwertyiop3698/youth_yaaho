@@ -25,7 +25,14 @@ val localProperties = Properties().apply {
         load(FileInputStream(file))
     }
 }
-val apiBaseUrl: String = (localProperties.getProperty("API_BASE_URL") ?: "http://10.0.2.2:8000/")
+val debugApiBaseUrl: String = localProperties.getProperty("API_BASE_URL") ?: "http://10.0.2.2:8000/"
+val releaseApiBaseUrl: String? = localProperties.getProperty("RELEASE_API_BASE_URL")
+val releaseTaskRequested = gradle.startParameter.taskNames.any { it.contains("release", ignoreCase = true) }
+if (releaseTaskRequested && (releaseApiBaseUrl == null || !releaseApiBaseUrl.startsWith("https://"))) {
+    throw GradleException(
+        "release 빌드에는 local.properties의 RELEASE_API_BASE_URL=https://... 설정이 필요합니다.",
+    )
+}
 
 android {
     namespace = "com.ysafe.youthyaho"
@@ -38,12 +45,12 @@ android {
         versionCode = 1
         versionName = "0.1.0"
 
-        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         debug {
+            buildConfigField("String", "API_BASE_URL", "\"$debugApiBaseUrl\"")
             // 명시적으로 false를 적어서 "기본값에 의존하다 뭔가 잘못 적용된 것 아닌가"
             // 하는 의심 여지를 없앤다. 참고: R8은 shrink 여부와 무관하게 D8을 대체하는
             // dex 변환기라서, isMinifyEnabled=false여도 빌드 로그에 R8 단계 자체는
@@ -52,6 +59,10 @@ android {
             isMinifyEnabled = false
         }
         release {
+            // release task가 아닐 때 Gradle 구성 단계가 완료되도록 안전한 HTTPS
+            // placeholder를 쓰며, 실제 release task는 위 검증에서 미설정을 거부한다.
+            val endpoint = releaseApiBaseUrl ?: "https://invalid.local/"
+            buildConfigField("String", "API_BASE_URL", "\"$endpoint\"")
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }

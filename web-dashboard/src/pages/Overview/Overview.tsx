@@ -29,9 +29,9 @@ function OverviewContent({ data }: { data: OverviewReady }) {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <StatCard label="부산 청년 1인가구 수" value={data.total_citizens.toLocaleString('ko-KR')} />
         <StatCard
-          label="평균 경제위험 확률"
+          label="평균 프록시 위험점수"
           value={data.avg_risk_probability !== null ? `${(data.avg_risk_probability * 100).toFixed(1)}%` : '—'}
-          hint="risk_probability(0~1)의 전체 평균"
+          hint="현재 프록시 라벨 기반 점수(0~1)의 전체 평균이며 미래 사건 확률이 아닙니다."
         />
       </div>
 

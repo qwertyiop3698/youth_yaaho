@@ -18,7 +18,9 @@ data class SettingsUiState(
     val notificationsEnabled: Boolean = false,
     val isLoggedIn: Boolean = false,
     val showDeleteConfirmDialog: Boolean = false,
-    val deleteRequestSubmitted: Boolean = false,
+    val isDeleting: Boolean = false,
+    val accountDeleted: Boolean = false,
+    val deleteErrorMessage: String? = null,
 )
 
 class SettingsViewModel(
@@ -51,10 +53,22 @@ class SettingsViewModel(
         _uiState.update { it.copy(showDeleteConfirmDialog = false) }
     }
 
-    // 백엔드에 실제 삭제 API가 없어(doc11 Must/Should 목록에도 없음) 서버 호출 없이
-    // 로컬 확인 다이얼로그 + "접수됨" 상태만 보여주는 스텁이다.
     fun confirmDeleteRequest() {
-        _uiState.update { it.copy(showDeleteConfirmDialog = false, deleteRequestSubmitted = true) }
+        _uiState.update {
+            it.copy(showDeleteConfirmDialog = false, isDeleting = true, deleteErrorMessage = null)
+        }
+        viewModelScope.launch {
+            authRepository.deleteAccount().fold(
+                onSuccess = {
+                    _uiState.update { state -> state.copy(isDeleting = false, accountDeleted = true) }
+                },
+                onFailure = { error ->
+                    _uiState.update { state ->
+                        state.copy(isDeleting = false, deleteErrorMessage = error.message ?: "계정을 삭제하지 못했습니다.")
+                    }
+                },
+            )
+        }
     }
 
     fun logout() {

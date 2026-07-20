@@ -5,17 +5,11 @@
 
     <application
         android:name=".YouthYahoApp"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
-        android:usesCleartextTraffic="true">
-        <!--
-            usesCleartextTraffic="true": 로컬 개발 중 http://10.0.2.2:8000 (에뮬레이터) /
-            http://localhost:8000 (adb reverse) / http://<LAN IP>:8000 로 접속해야 하므로
-            평문 HTTP를 허용한다. 실제 배포용 빌드(release, 운영 HTTPS 백엔드)에서는
-            반드시 제거하거나 buildType별로 분리할 것.
-        -->
+        android:usesCleartextTraffic="false">
         <activity
             android:name=".MainActivity"
             android:exported="true"

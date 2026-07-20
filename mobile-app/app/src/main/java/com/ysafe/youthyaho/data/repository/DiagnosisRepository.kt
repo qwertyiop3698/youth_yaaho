@@ -22,6 +22,9 @@ class DiagnosisRepository(private val api: CitizenApiService) {
     // 네트워크 호출 없이 바로 쓸 수 있게 이 레이어에서 들고 있는다. 프로세스가
     // 죽었다 살아나는 경우처럼 캐시가 비어있으면 화면 쪽에서 "결과 없음"으로 처리한다.
     private val diagnoseResultCache = mutableMapOf<String, DiagnoseResponseDto>()
+    // 익명 세션의 UUID가 URL/로그에서 노출돼도 결과를 조회할 수 없도록 서버가 별도
+    // 발급한 비밀 토큰을 앱 프로세스 메모리에만 보관한다. 로그인 세션은 JWT 소유권을 쓴다.
+    private val anonymousSessionTokens = mutableMapOf<String, String>()
 
     suspend fun diagnose(
         ageGroup: String,
@@ -40,7 +43,10 @@ class DiagnosisRepository(private val api: CitizenApiService) {
                     has_debt = hasDebt,
                 ),
             )
-        }.onSuccess { response -> diagnoseResultCache[response.session_id] = response }
+        }.onSuccess { response ->
+            diagnoseResultCache[response.session_id] = response
+            response.session_access_token?.let { anonymousSessionTokens[response.session_id] = it }
+        }
 
     fun getCachedResult(sessionId: String): DiagnoseResponseDto? = diagnoseResultCache[sessionId]
 
@@ -50,17 +56,17 @@ class DiagnosisRepository(private val api: CitizenApiService) {
     // 책임으로 둔다. API 자체는 범용으로 두고, 몇 개를 보여줄지는 클라이언트
     // 화면 요구사항(doc09: "top3")에 맡긴다.
     suspend fun getRecommendations(sessionId: String): Result<RecommendationsResponseDto> =
-        apiResultOf { api.recommendations(sessionId) }
+        apiResultOf { api.recommendations(sessionId, anonymousSessionTokens[sessionId]) }
 
     // 백엔드가 세션에 캐싱해두고 재요청 시 재호출하지 않는다(app/routers/citizen.py)
     // - 여기서는 그냥 매번 호출하면 된다, 이중 캐싱할 필요 없음.
     suspend fun getExplanation(sessionId: String): Result<ExplanationResponseDto> =
-        apiResultOf { api.explanation(sessionId) }
+        apiResultOf { api.explanation(sessionId, anonymousSessionTokens[sessionId]) }
 
     // 백엔드가 session_id당 진단 1건만 저장한다는 한계(citizen.py의 note 필드가
     // 그대로 알려줌)를 이 레이어에서 감추거나 가공하지 않고 원본 그대로 반환한다 -
     // "여러 항목을 순회하는 히스토리"처럼 보이게 만들면 실제로 없는 기능을 있는
     // 것처럼 오해시킬 수 있다.
     suspend fun getHistory(sessionId: String): Result<HistoryResponseDto> =
-        apiResultOf { api.history(sessionId) }
+        apiResultOf { api.history(sessionId, anonymousSessionTokens[sessionId]) }
 }

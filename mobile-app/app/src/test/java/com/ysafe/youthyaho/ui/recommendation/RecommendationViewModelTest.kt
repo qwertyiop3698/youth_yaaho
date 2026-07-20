@@ -5,7 +5,9 @@ import com.ysafe.youthyaho.data.api.ApiException
 import com.ysafe.youthyaho.data.api.dto.OtherPolicyItemDto
 import com.ysafe.youthyaho.data.api.dto.RecommendationItemDto
 import com.ysafe.youthyaho.data.api.dto.RecommendationsResponseDto
+import com.ysafe.youthyaho.data.api.dto.DemandEligibilityDto
 import com.ysafe.youthyaho.data.repository.DiagnosisRepository
+import com.ysafe.youthyaho.data.repository.PolicyDemandRepository
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -21,6 +23,12 @@ class RecommendationViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val diagnosisRepository: DiagnosisRepository = mockk()
+    private val policyDemandRepository: PolicyDemandRepository = mockk()
+
+    private fun createViewModel(): RecommendationViewModel {
+        coEvery { policyDemandRepository.eligibility(any(), any()) } returns Result.failure(ApiException(401, "로그인이 필요합니다."))
+        return RecommendationViewModel(diagnosisRepository, policyDemandRepository, "s1")
+    }
 
     private fun item(policy: String, priority: Int, eligible: Boolean = true) = RecommendationItemDto(
         policy = policy,
@@ -43,7 +51,7 @@ class RecommendationViewModelTest {
         coEvery { diagnosisRepository.getRecommendations("s1") } returns
             Result.success(RecommendationsResponseDto(all))
 
-        val viewModel = RecommendationViewModel(diagnosisRepository, "s1")
+        val viewModel = createViewModel()
 
         val state = viewModel.uiState.value
         assertFalse(state.isLoading)
@@ -58,7 +66,7 @@ class RecommendationViewModelTest {
         coEvery { diagnosisRepository.getRecommendations("s1") } returns
             Result.success(RecommendationsResponseDto(listOf(item("A", priority = 1)), others))
 
-        val viewModel = RecommendationViewModel(diagnosisRepository, "s1")
+        val viewModel = createViewModel()
 
         assertEquals(others, viewModel.uiState.value.otherPolicies)
     }
@@ -68,7 +76,7 @@ class RecommendationViewModelTest {
         coEvery { diagnosisRepository.getRecommendations("s1") } returns
             Result.failure(ApiException(404, "session_id를 찾을 수 없습니다."))
 
-        val viewModel = RecommendationViewModel(diagnosisRepository, "s1")
+        val viewModel = createViewModel()
 
         val state = viewModel.uiState.value
         assertFalse(state.isLoading)
@@ -81,12 +89,24 @@ class RecommendationViewModelTest {
             Result.failure(ApiException(500, "서버 오류")) andThen
             Result.success(RecommendationsResponseDto(listOf(item("A", priority = 1))))
 
-        val viewModel = RecommendationViewModel(diagnosisRepository, "s1")
+        val viewModel = createViewModel()
         assertEquals("서버 오류", viewModel.uiState.value.errorMessage)
 
         viewModel.retry()
 
         assertTrue(viewModel.uiState.value.errorMessage == null)
         assertEquals(listOf("A"), viewModel.uiState.value.topRecommendations.map { it.policy })
+    }
+
+    @Test
+    fun `no recommendation shows unmet demand card when server allows it`() = runTest {
+        coEvery { diagnosisRepository.getRecommendations("s1") } returns Result.success(RecommendationsResponseDto(emptyList()))
+        coEvery { policyDemandRepository.eligibility("s1", "no_recommendation") } returns
+            Result.success(DemandEligibilityDto(true, "no_recommendation", 1000, null, "필요한 지원을 알려주세요."))
+
+        val viewModel = RecommendationViewModel(diagnosisRepository, policyDemandRepository, "s1")
+
+        assertEquals("no_recommendation", viewModel.uiState.value.demandTriggerReason)
+        assertEquals(1000, viewModel.uiState.value.demandRewardAmount)
     }
 }

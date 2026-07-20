@@ -38,7 +38,7 @@ export interface PolicyGapsReady {
   risk_threshold: number
   n_high_risk: number
   n_high_risk_without_policy: number
-  person_ids: string[] // 최대 100건까지만(백엔드에서 슬라이스)
+  regions: Array<{ region_code: string; n_high_risk_without_policy: number }>
 }
 
 export type PolicyGapsResponse = PolicyGapsReady | NotReady
@@ -111,3 +111,122 @@ export interface BanditStatusReady {
 }
 
 export type BanditStatusResponse = BanditStatusReady | NotReady
+
+export interface ProtectedCount {
+  suppressed: boolean
+  count: number | null
+}
+
+export type ProtectedDistribution = Record<string, ProtectedCount>
+
+export interface FeedbackStageRate {
+  suppressed: boolean
+  responses: number | null
+  eligible_usages: number | null
+  rate: number | null
+}
+
+export interface PolicyFeedbackMetrics {
+  usage_funnel: Record<string, ProtectedCount>
+  stage_response_rates: Record<string, FeedbackStageRate>
+  perceived_effect_distribution: ProtectedDistribution
+  most_helpful_area_distribution: ProtectedDistribution
+  application_barrier_distribution: ProtectedDistribution
+  support_adequacy_distribution: ProtectedDistribution
+  insufficient_amount_ratio: number | null
+  insufficient_period_ratio: number | null
+  both_insufficient_ratio: number | null
+  followup_support_distribution: ProtectedDistribution
+  improvement_direction_distribution: ProtectedDistribution
+  selected_rejected_barrier_comparison: Record<string, unknown>
+  policy_usage_completion_rate: number | null
+  free_text_response_count: number | null
+  free_text_response_suppressed: boolean
+}
+
+export type PolicyRecommendation =
+  | 'maintain' | 'expand' | 'simplify' | 'retarget' | 'extend_duration'
+  | 'increase_amount' | 'connect_followup' | 'redesign' | 'insufficient_data'
+
+export type AnalysisConfidence = 'low' | 'medium' | 'high'
+
+export interface PolicyAnalysisScores {
+  effectiveness: number | null
+  accessibility: number | null
+  support_adequacy: number | null
+  followup_need: number | null
+  improvement_urgency: number | null
+}
+
+export interface PolicyFeedbackAnalysis {
+  policy_id: string
+  policy_name: string
+  category: string
+  respondent_count: number
+  publicly_available: boolean
+  confidence: AnalysisConfidence
+  scores: PolicyAnalysisScores
+  primary_bottleneck: string | null
+  top_followup_need: string | null
+  primary_recommendation: PolicyRecommendation
+  secondary_recommendations: PolicyRecommendation[]
+  summary: string[]
+  suppressed_cell_count: number
+  ranks: Record<string, number | null>
+  category_ranks: Record<string, number | null>
+}
+
+export interface PolicyFeedbackSummary {
+  policy_id: string
+  policy_name: string
+  respondent_count: number
+  minimum_group_size: number
+  suppressed: boolean
+  suppression_reason: string | null
+  usage_count: number
+  feedback_submission_count: number
+  overall_response_rate: number | null
+  metrics: PolicyFeedbackMetrics | null
+}
+
+export interface DemandTrend {
+  suppressed: boolean
+  current_count: number | null
+  previous_count: number | null
+  change_rate: number | null
+}
+export interface PolicyDemandMetrics {
+  need_area_distribution: ProtectedDistribution
+  duration_distribution: ProtectedDistribution
+  amount_distribution: ProtectedDistribution
+  barrier_distribution: ProtectedDistribution
+  companion_support_distribution: ProtectedDistribution
+  trigger_reason_distribution: ProtectedDistribution
+  district_distribution: ProtectedDistribution
+  employment_distribution: ProtectedDistribution
+  category_gap_distribution: ProtectedDistribution
+  trend_30_days: DemandTrend
+  trend_90_days: DemandTrend
+}
+export interface PolicyDemandSummary {
+  respondent_count: number
+  minimum_group_size: number
+  suppressed: boolean
+  suppression_reason: string | null
+  metrics: PolicyDemandMetrics | null
+  comparison_summary: string[]
+}
+export interface PolicyDemandPriority {
+  need_area: string
+  respondent_count: number | null
+  publicly_available: boolean
+  score: number | null
+  confidence: AnalysisConfidence
+  components: Record<string, number | null> | null
+  primary_recommendation: string
+  secondary_recommendations: string[]
+  top_district: string | null
+  top_employment_status: string | null
+  top_trigger_reason: string | null
+  summary: string[]
+}

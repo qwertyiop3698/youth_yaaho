@@ -76,6 +76,18 @@ class TestGetPolicyUrl:
 
         assert youthcenter_service.get_policy_url("plcy-3") is None
 
+    def test_rejects_non_https_application_url(self, monkeypatch):
+        monkeypatch.setenv("YOUTHCENTER_API_KEY", "dummy-key")
+        monkeypatch.setattr(
+            httpx,
+            "get",
+            lambda *a, **k: _fake_response(
+                {"result": {"youthPolicyList": [{"aplyUrlAddr": "intent://malicious-app"}]}}
+            ),
+        )
+
+        assert youthcenter_service.get_policy_url("unsafe-url") is None
+
     def test_swallows_network_exception_and_returns_none(self, monkeypatch):
         monkeypatch.setenv("YOUTHCENTER_API_KEY", "dummy-key")
 

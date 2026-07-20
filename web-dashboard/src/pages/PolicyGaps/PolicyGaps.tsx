@@ -16,7 +16,7 @@ export function PolicyGaps() {
     <div className="flex flex-col gap-6">
       <div>
         <h2 className="text-xl font-semibold">정책 사각지대 탐지</h2>
-        <p className="mt-1 text-sm text-gray-500">위험점수 상위 + 아직 정책이 배정되지 않은 사람들</p>
+        <p className="mt-1 text-sm text-gray-500">프록시 위험점수 상위 그룹 중 정책 미배정 인원을 지역별로 집계합니다.</p>
       </div>
 
       <div className="rounded-lg border border-brand-border bg-white p-4 shadow-sm">
@@ -65,25 +65,25 @@ function PolicyGapsContent({ data }: { data: PolicyGapsReady }) {
       </div>
 
       <div className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
-        <h3 className="mb-4 text-sm font-medium text-gray-500">
-          사각지대 인원 목록 (최대 100건){data.person_ids.length > 0 && ` - ${data.person_ids.length}건`}
-        </h3>
-        {data.person_ids.length === 0 ? (
-          <p className="text-sm text-gray-400">현재 기준선에서 사각지대 인원이 없습니다.</p>
+        <h3 className="mb-4 text-sm font-medium text-gray-500">지역별 정책 미배정 집계</h3>
+        {data.regions.length === 0 ? (
+          <p className="text-sm text-gray-400">현재 기준선에서 표시할 지역 집계가 없습니다.</p>
         ) : (
           <div className="max-h-96 overflow-y-auto">
             <table className="w-full text-left text-sm">
               <thead className="sticky top-0 bg-white text-gray-500">
                 <tr>
-                  <th className="border-b border-brand-border py-2 pr-4">#</th>
-                  <th className="border-b border-brand-border py-2">person_id</th>
+                  <th className="border-b border-brand-border py-2 pr-4">지역 코드</th>
+                  <th className="border-b border-brand-border py-2 text-right">정책 미배정 인원</th>
                 </tr>
               </thead>
               <tbody>
-                {data.person_ids.map((id, index) => (
-                  <tr key={id} className="odd:bg-red-50">
-                    <td className="py-1.5 pr-4 text-gray-400">{index + 1}</td>
-                    <td className="py-1.5 font-mono text-gray-800">{id}</td>
+                {data.regions.map((region) => (
+                  <tr key={region.region_code} className="odd:bg-red-50">
+                    <td className="py-1.5 pr-4 font-mono text-gray-800">{region.region_code}</td>
+                    <td className="py-1.5 text-right font-medium text-gray-800">
+                      {region.n_high_risk_without_policy.toLocaleString('ko-KR')}명
+                    </td>
                   </tr>
                 ))}
               </tbody>

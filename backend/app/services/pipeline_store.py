@@ -8,6 +8,7 @@ None으로 두고 status()에서 명확히 표시한다 - 없는 파일을 억�
 from __future__ import annotations
 
 import json
+import os
 from functools import cached_property
 from pathlib import Path
 from typing import Any
@@ -17,9 +18,22 @@ import pandas as pd
 import yaml
 
 from pipeline.layer0_data_contract.profiler import load_column_config
+from pipeline.layer1_features import feature_engineer as fe
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
-DEFAULT_DATA_DIR = _PROJECT_ROOT / "data" / "processed"
+_PRIMARY_DATA_DIR = _PROJECT_ROOT / "data" / "processed"
+_DEMO_DATA_DIR = _PROJECT_ROOT / "data" / "processed_large"
+
+
+def _resolve_default_data_dir() -> Path:
+    configured = os.environ.get("PIPELINE_DATA_DIR")
+    if configured:
+        return Path(configured).expanduser().resolve()
+    # 새 clone에는 ignored인 processed/가 없으므로 추적된 합성 데모 산출물로 폴백한다.
+    return _PRIMARY_DATA_DIR if _PRIMARY_DATA_DIR.exists() else _DEMO_DATA_DIR
+
+
+DEFAULT_DATA_DIR = _resolve_default_data_dir()
 DEFAULT_POLICY_CATALOG_PATH = (
     Path(__file__).resolve().parents[2] / "pipeline" / "layer3_optimization" / "policy_catalog.yaml"
 )
@@ -62,6 +76,18 @@ class PipelineStore:
     @cached_property
     def featured_dataset(self) -> pd.DataFrame | None:
         return _read_parquet_if_exists(self.data_dir / "featured_dataset.parquet")
+
+    @cached_property
+    def domain_index_population_stats(self) -> dict[str, tuple[float, float]] | None:
+        """도메인지수 구성변수들의 population 평균/표준편차(학습 데이터셋 기준).
+
+        진단 API가 시민의 1행짜리 입력을 z-score로 표준화할 때, 그 1행 자기 자신을
+        기준으로 표준화하면 표준편차가 항상 0이 되어 도메인지수가 항상 0으로 나오는
+        문제가 있었다 - 대신 이 population 기준값으로 표준화해야 한다
+        (backend/app/services/diagnose_service.py 참고)."""
+        if self.featured_dataset is None:
+            return None
+        return fe.compute_domain_index_population_stats(self.featured_dataset)
 
     @cached_property
     def risk_scores(self) -> pd.DataFrame | None:

@@ -19,7 +19,7 @@
     "기타": 0.07
   },
   "assigned_policies": ["청년월세지원", "희망신용상담센터"],
-  "hazard_ratio_context": {"주거가격부담률": 1.8}
+  "risk_probability": 0.72
 }
 ```
 
@@ -36,4 +36,4 @@
 
 ## API 연동
 
-앱의 "왜 추천했는지" 화면에서 요청 시 실시간 호출 (`GET /api/v1/citizen/{session_id}/explanation`). 응답은 세션에 캐싱해 동일 세션 재요청 시 재호출하지 않음 (Redis 캐시 활용).
+앱의 "왜 추천했는지" 화면에서 요청 시 호출 (`GET /api/v1/citizen/{session_id}/explanation`). 현재 MVP는 SQLite의 `citizen_sessions.explanation_text`에 결과를 저장해 같은 세션의 재요청 시 외부 모델을 다시 호출하지 않는다. 외부 모델 호출이 실패하거나 API 키가 없으면 근거 수치 기반 템플릿으로 대체한다.

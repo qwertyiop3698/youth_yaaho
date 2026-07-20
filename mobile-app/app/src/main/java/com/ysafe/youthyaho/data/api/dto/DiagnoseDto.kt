@@ -14,6 +14,7 @@ data class DiagnoseRequestDto(
 @Serializable
 data class DiagnoseResponseDto(
     val session_id: String,
+    val session_access_token: String? = null,
     val domain_indices: Map<String, Float>,
     val cluster_membership: Map<String, Float>,
     val risk_probability: Float? = null,

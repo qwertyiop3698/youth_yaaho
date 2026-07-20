@@ -143,7 +143,7 @@ function DistrictTooltip({ feature, region }: { feature: BusanDistrictFeature; r
       <p className="font-semibold text-brand-ink">{feature.properties.name}</p>
       {region ? (
         <>
-          <p className="mt-0.5 text-gray-600">평균 위험도 {(region.avg_risk_probability * 100).toFixed(0)}%</p>
+          <p className="mt-0.5 text-gray-600">평균 프록시 점수 {(region.avg_risk_probability * 100).toFixed(0)}점</p>
           <p className="text-gray-400">표본 {region.n}명</p>
         </>
       ) : (
@@ -156,7 +156,7 @@ function DistrictTooltip({ feature, region }: { feature: BusanDistrictFeature; r
 function RiskLegend() {
   return (
     <div className="flex items-center gap-4 rounded-lg border border-brand-border bg-white p-3 text-xs text-gray-600">
-      <span>위험도</span>
+      <span>프록시 점수</span>
       <div className="flex items-center gap-1">
         <span>낮음</span>
         <div
@@ -189,7 +189,7 @@ function RiskMapGrid({ regions }: { regions: RiskRegion[] }) {
           style={{ backgroundColor: riskColor(region.avg_risk_probability) }}
         >
           <p className="text-xs opacity-90">{region.region_code}</p>
-          <p className="mt-1 text-2xl font-semibold">{(region.avg_risk_probability * 100).toFixed(0)}%</p>
+          <p className="mt-1 text-2xl font-semibold">{(region.avg_risk_probability * 100).toFixed(0)}점</p>
           <p className="mt-1 text-xs opacity-90">표본 {region.n}명</p>
         </div>
       ))}
