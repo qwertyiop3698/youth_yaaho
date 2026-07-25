@@ -16,6 +16,7 @@ import copy
 from typing import Any
 
 import pandas as pd
+from tqdm import tqdm
 
 from . import lp_allocator
 
@@ -58,7 +59,7 @@ def run_budget_sensitivity(
     total_persons = int(df[risk_col].notna().sum()) if risk_col in df.columns else 0
 
     rows = []
-    for multiplier in multipliers:
+    for multiplier in tqdm(multipliers, desc="[Layer3] 예산 민감도 분석(배율별 LP 재계산)", unit="배율"):
         scaled_catalog = _scale_budget(policy_catalog, multiplier)
         assignment_df, solve_report = lp_allocator.build_and_solve_lp(
             df, scaled_catalog, risk_col=risk_col, max_policy_per_person=max_policy_per_person
@@ -116,7 +117,9 @@ def run_per_policy_marginal_analysis(
     baseline_coverage = compute_coverage_rate(baseline_assignment, total_persons)
 
     rows = []
-    for policy_name in policy_catalog["policies"]:
+    for policy_name in tqdm(
+        list(policy_catalog["policies"]), desc="[Layer3] 정책별 한계효과 분석(정책당 LP 재계산)", unit="정책"
+    ):
         bumped_catalog = copy.deepcopy(policy_catalog)
         bumped_catalog["policies"][policy_name]["budget_cap"] = bumped_catalog["policies"][policy_name][
             "budget_cap"

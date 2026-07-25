@@ -23,6 +23,7 @@ from pathlib import Path
 
 import pandas as pd
 import yaml
+from tqdm import tqdm
 
 from ..layer2a_clustering import risk_trajectory_simulator
 from . import lp_allocator, regret_curve, sensitivity_analysis, synthetic_reward
@@ -67,20 +68,35 @@ def run(
     policy_catalog = load_policy_catalog(policy_catalog_path)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # 전체 6단계 진행상황을 보여주는 바깥쪽 진행바. 예산 민감도(11개 배율)/정책별
+    # 한계효과(정책 수만큼)/Thompson Sampling(N_BANDIT_ROUNDS 라운드) 단계는 그 자체로도
+    # 안쪽 진행바(sensitivity_analysis.py, regret_curve.py)를 갖고 있다 - LP를 100,816명
+    # 규모에서 총 19번 가까이 다시 푸는 게 Layer3에서 제일 오래 걸리는 지점이라
+    # (2026-07-25 실측), 그 구간에서 화면이 멈춘 것처럼 보이지 않게 하기 위함.
+    stage_bar = tqdm(total=6, desc="[Layer3] 시작", unit="단계")
+
+    stage_bar.set_description("[Layer3] 1/6 LP 최적 배정")
     assignment_df, lp_report = lp_allocator.build_and_solve_lp(df, policy_catalog, risk_col=RISK_COL)
     assignment_df.to_parquet(output_dir / "assignment_results.parquet", index=False)
+    stage_bar.update(1)
 
+    stage_bar.set_description("[Layer3] 2/6 예산 민감도 분석")
     sensitivity_df = sensitivity_analysis.run_budget_sensitivity(df, policy_catalog, risk_col=RISK_COL)
     sensitivity_df.to_parquet(output_dir / "budget_sensitivity.parquet", index=False)
     marginal_gain = sensitivity_analysis.marginal_gain_per_10pct_budget(sensitivity_df)
+    stage_bar.update(1)
 
+    stage_bar.set_description("[Layer3] 3/6 정책별 한계효과 분석")
     policy_marginal_df = sensitivity_analysis.run_per_policy_marginal_analysis(df, policy_catalog, risk_col=RISK_COL)
     policy_marginal_df.to_parquet(output_dir / "policy_marginal_return.parquet", index=False)
+    stage_bar.update(1)
 
+    stage_bar.set_description("[Layer3] 4/6 Thompson Sampling 시뮬레이션")
     policy_names = list(policy_catalog["policies"].keys())
     bandit_result = regret_curve.run_bandit_simulation(policy_names, n_rounds=N_BANDIT_ROUNDS)
     bandit_result["history"].to_parquet(output_dir / "regret_curve.parquet", index=False)
     bandit_result["segment_regret"].to_parquet(output_dir / "regret_segment_summary.parquet", index=False)
+    stage_bar.update(1)
 
     gap_df = synthetic_reward.compute_prior_vs_true_gap(policy_catalog, bandit_result["true_effectiveness"])
 
@@ -108,6 +124,7 @@ def run(
         },
     }
 
+    stage_bar.set_description("[Layer3] 5/6 위험 궤적 시뮬레이션")
     # 위험 궤적 시뮬레이션(docs/04) - Layer2-A(클러스터 프로파일/소속확률)와
     # Layer2-B(위험확률)가 둘 다 필요해 두 레이어 산출물이 합류하는 Layer3에서
     # 계산한다. 둘 중 하나라도 없으면(표본부족으로 Layer2-A 생략 등) 조용히
@@ -137,10 +154,14 @@ def run(
         else:
             trajectory_report["reason"] = "클러스터 모델이 학습되지 않았습니다(표본 부족 등으로 Layer2-A 생략)."
     report["trajectory_simulation"] = trajectory_report
+    stage_bar.update(1)
 
+    stage_bar.set_description("[Layer3] 6/6 리포트 저장")
     (output_dir / "optimization_report.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=2, default=str), encoding="utf-8"
     )
+    stage_bar.update(1)
+    stage_bar.close()
 
     print(f"[Layer3] LP: {lp_report}")
     print(f"[Layer3] 예산 10%당 커버리지율 평균 증가분: {marginal_gain}")

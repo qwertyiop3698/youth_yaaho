@@ -21,6 +21,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 from . import synthetic_reward
 from .thompson_sampling import ThompsonSamplingBandit
@@ -82,7 +83,7 @@ def run_bandit_simulation(
 
     cumulative_regret = 0.0
     history = []
-    for round_idx in range(n_rounds):
+    for round_idx in tqdm(range(n_rounds), desc="[Layer3] Thompson Sampling 시뮬레이션", unit="라운드"):
         chosen = bandit.select_policy(rng)
         success = synthetic_reward.simulate_reward(chosen, true_effectiveness, rng)
         bandit.update(chosen, success)
