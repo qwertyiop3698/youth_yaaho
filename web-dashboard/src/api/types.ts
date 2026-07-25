@@ -27,6 +27,12 @@ export interface RiskRegion {
   n: number
   // sigungu 레벨에서만 채워짐(dong은 경계 geojson이 없어 공간분석 불가)
   lisa_quadrant: LisaQuadrant | null
+  // 2026-07-25 DIVE 2026 이종결합: 부산시 인구현황 외부데이터 결합. population_reference가
+  // null이면 그 지역은 생활인구 매칭 실패(0명이 아니라 "모름" - 0으로 나누지 않음).
+  n_high_risk: number
+  population_reference: number | null
+  population_join_method: 'dong' | 'sigungu' | 'unmatched' | null
+  high_risk_per_1000_population: number | null
 }
 
 export interface SpatialStats {
@@ -44,6 +50,8 @@ export interface RiskMapReady {
   level: RiskMapLevel
   regions: RiskRegion[]
   spatial_stats: SpatialStats | null
+  population_reference_available: boolean
+  population_data_note: string | null
 }
 
 export type RiskMapResponse = RiskMapReady | NotReady

@@ -148,7 +148,7 @@ function PolicyMarginalReturnsPanel({ isLoading, isError, error, data, hasApiKey
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis type="number" tickFormatter={(v: number) => `${(v * 100).toFixed(1)}%p`} />
                 <YAxis type="category" dataKey="policy" width={140} tick={{ fontSize: 12 }} />
-                <Tooltip formatter={(v: number) => (v !== null ? `${(v * 100).toFixed(2)}%p` : '—')} />
+                <Tooltip formatter={(v) => (typeof v === 'number' ? `${(v * 100).toFixed(2)}%p` : '—')} />
                 <Bar dataKey="marginal_gain_per_10pct" name="한계 커버리지 증가">
                   {data.policies.map((p) => (
                     <Cell key={p.policy} fill={(p.marginal_gain_per_10pct ?? 0) > 0 ? '#0ea5e9' : '#94a3b8'} />

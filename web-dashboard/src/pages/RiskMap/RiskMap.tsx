@@ -12,30 +12,91 @@ const LEVELS: { value: RiskMapLevel; label: string }[] = [
   { value: 'dong', label: '행정동' },
 ]
 
+export type MetricMode = 'absolute' | 'normalized'
+
+const METRIC_MODES: { value: MetricMode; label: string }[] = [
+  { value: 'absolute', label: '절대값' },
+  { value: 'normalized', label: '인구 1천명당' },
+]
+
 const BUSAN_CENTER = { lat: 35.1796, lng: 129.0756 }
 const KAKAO_APP_KEY = import.meta.env.VITE_KAKAO_MAP_APP_KEY
 
+// 정규화 지표(high_risk_per_1000_population)를 riskColor()가 기대하는 0~1 범위로
+// 맞추기 위한 지역간 min-max. 절대 위험도(avg_risk_probability)는 이미 0~1이라
+// 별도 정규화가 필요 없지만, 인구 1천명당 위험군 수는 상한이 없는 비율이라
+// 지도에 표시된 지역들 안에서 상대적으로 색을 매겨야 한다.
+function computeNormalizedRange(regions: RiskRegion[]): { min: number; max: number } | null {
+  const values = regions
+    .map((r) => r.high_risk_per_1000_population)
+    .filter((v): v is number => v !== null)
+  if (values.length === 0) return null
+  return { min: Math.min(...values), max: Math.max(...values) }
+}
+
+function metricColorValue(
+  region: RiskRegion,
+  mode: MetricMode,
+  normalizedRange: { min: number; max: number } | null,
+): number | null {
+  if (mode === 'absolute') return region.avg_risk_probability
+  if (region.high_risk_per_1000_population === null || !normalizedRange) return null
+  const { min, max } = normalizedRange
+  if (max === min) return 0.5
+  return (region.high_risk_per_1000_population - min) / (max - min)
+}
+
 export function RiskMap() {
   const [level, setLevel] = useState<RiskMapLevel>('sigungu')
+  const [metricMode, setMetricMode] = useState<MetricMode>('absolute')
   const { data, isLoading, isError, error } = useRiskMap(level)
+
+  const populationAvailable = data && data.ready ? data.population_reference_available : false
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold">지역 위험지도</h2>
-        <div className="flex gap-1 rounded-lg border border-brand-border bg-white p-1">
-          {LEVELS.map((l) => (
-            <button
-              key={l.value}
-              type="button"
-              onClick={() => setLevel(l.value)}
-              className={`rounded px-3 py-1 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-blue ${
-                level === l.value ? 'bg-brand-blue text-white' : 'text-gray-600 hover:bg-brand-surface-muted'
-              }`}
-            >
-              {l.label}
-            </button>
-          ))}
+        <div className="flex flex-wrap gap-3">
+          <div
+            className="flex gap-1 rounded-lg border border-brand-border bg-white p-1"
+            role="group"
+            aria-label="위험지도 표시 지표"
+          >
+            {METRIC_MODES.map((m) => {
+              const disabled = m.value === 'normalized' && !populationAvailable
+              return (
+                <button
+                  key={m.value}
+                  type="button"
+                  onClick={() => setMetricMode(m.value)}
+                  disabled={disabled}
+                  title={disabled ? '생활인구 참조데이터가 없어 정규화 지표를 쓸 수 없습니다.' : undefined}
+                  className={`rounded px-3 py-1 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-blue disabled:cursor-not-allowed disabled:opacity-40 ${
+                    metricMode === m.value
+                      ? 'bg-brand-blue text-white'
+                      : 'text-gray-600 hover:bg-brand-surface-muted'
+                  }`}
+                >
+                  {m.label}
+                </button>
+              )
+            })}
+          </div>
+          <div className="flex gap-1 rounded-lg border border-brand-border bg-white p-1">
+            {LEVELS.map((l) => (
+              <button
+                key={l.value}
+                type="button"
+                onClick={() => setLevel(l.value)}
+                className={`rounded px-3 py-1 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-blue ${
+                  level === l.value ? 'bg-brand-blue text-white' : 'text-gray-600 hover:bg-brand-surface-muted'
+                }`}
+              >
+                {l.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -44,7 +105,10 @@ export function RiskMap() {
           level === 'sigungu' ? (
             <div className="flex flex-col gap-3">
               <SpatialStatsBanner stats={data.spatial_stats} />
-              <RiskChoroplethMap regions={data.regions} />
+              {metricMode === 'normalized' && data.population_data_note && (
+                <PopulationDataNoteBanner note={data.population_data_note} />
+              )}
+              <RiskChoroplethMap regions={data.regions} metricMode={metricMode} />
             </div>
           ) : (
             <div className="flex flex-col gap-3">
@@ -52,7 +116,10 @@ export function RiskMap() {
                 행정동 단위는 아직 경계 데이터가 없어 카드 그리드로 표시합니다. 지도로 보려면 시군구
                 단위를 선택해주세요.
               </div>
-              <RiskMapGrid regions={data.regions} />
+              {metricMode === 'normalized' && data.population_data_note && (
+                <PopulationDataNoteBanner note={data.population_data_note} />
+              )}
+              <RiskMapGrid regions={data.regions} metricMode={metricMode} />
             </div>
           )
         ) : data ? (
@@ -63,7 +130,15 @@ export function RiskMap() {
   )
 }
 
-function RiskChoroplethMap({ regions }: { regions: RiskRegion[] }) {
+function PopulationDataNoteBanner({ note }: { note: string }) {
+  return (
+    <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800">
+      인구 1천명당 지표 안내: {note}
+    </div>
+  )
+}
+
+function RiskChoroplethMap({ regions, metricMode }: { regions: RiskRegion[]; metricMode: MetricMode }) {
   const [kakaoLoading, kakaoError] = useKakaoLoader({ appkey: KAKAO_APP_KEY ?? '' })
   const { data: geojson, isLoading: geoLoading, isError: geoError } = useBusanGeoJson()
   const [hoveredCode, setHoveredCode] = useState<string | null>(null)
@@ -73,6 +148,8 @@ function RiskChoroplethMap({ regions }: { regions: RiskRegion[] }) {
     for (const region of regions) map.set(region.region_code, region)
     return map
   }, [regions])
+
+  const normalizedRange = useMemo(() => computeNormalizedRange(regions), [regions])
 
   if (!KAKAO_APP_KEY) {
     return (
@@ -112,14 +189,15 @@ function RiskChoroplethMap({ regions }: { regions: RiskRegion[] }) {
       <KakaoMap center={BUSAN_CENTER} level={10} style={{ width: '100%', height: '560px', borderRadius: '0.5rem' }}>
         {geojson.features.map((feature) => {
           const region = regionByCode.get(feature.properties.region_code)
-          const color = region ? riskColor(region.avg_risk_probability) : NO_DATA_COLOR
-          const isHotspot = region?.lisa_quadrant === 'HH'
+          const colorValue = region ? metricColorValue(region, metricMode, normalizedRange) : null
+          const color = colorValue !== null ? riskColor(colorValue) : NO_DATA_COLOR
+          const isHotspot = metricMode === 'absolute' && region?.lisa_quadrant === 'HH'
           return featureOuterRings(feature).map((path, i) => (
             <Polygon
               key={`${feature.properties.region_code}-${i}`}
               path={path}
               fillColor={color}
-              fillOpacity={region ? 0.75 : 0.35}
+              fillOpacity={colorValue !== null ? 0.75 : 0.35}
               strokeColor={isHotspot ? '#dc2626' : '#FFFFFF'}
               strokeWeight={isHotspot ? 4 : 2}
               strokeOpacity={0.9}
@@ -132,11 +210,11 @@ function RiskChoroplethMap({ regions }: { regions: RiskRegion[] }) {
         })}
         {hoveredFeature && (
           <CustomOverlayMap position={featureLabelPoint(hoveredFeature)} yAnchor={1.1}>
-            <DistrictTooltip feature={hoveredFeature} region={hoveredRegion} />
+            <DistrictTooltip feature={hoveredFeature} region={hoveredRegion} metricMode={metricMode} />
           </CustomOverlayMap>
         )}
       </KakaoMap>
-      <RiskLegend />
+      <RiskLegend metricMode={metricMode} />
     </div>
   )
 }
@@ -148,16 +226,37 @@ const LISA_LABELS: Record<string, string> = {
   LH: '저위험 이상치(주변은 높음)',
 }
 
-function DistrictTooltip({ feature, region }: { feature: BusanDistrictFeature; region: RiskRegion | undefined }) {
+function DistrictTooltip({
+  feature,
+  region,
+  metricMode,
+}: {
+  feature: BusanDistrictFeature
+  region: RiskRegion | undefined
+  metricMode: MetricMode
+}) {
   return (
     <div className="rounded-lg border border-brand-border bg-white px-3 py-2 text-xs shadow-md">
       <p className="font-semibold text-brand-ink">{feature.properties.name}</p>
       {region ? (
         <>
-          <p className="mt-0.5 text-gray-600">평균 프록시 점수 {(region.avg_risk_probability * 100).toFixed(0)}점</p>
-          <p className="text-gray-400">표본 {region.n}명</p>
-          {region.lisa_quadrant && (
-            <p className="mt-0.5 text-gray-600">{LISA_LABELS[region.lisa_quadrant] ?? region.lisa_quadrant}</p>
+          {metricMode === 'absolute' ? (
+            <>
+              <p className="mt-0.5 text-gray-600">평균 프록시 점수 {(region.avg_risk_probability * 100).toFixed(0)}점</p>
+              <p className="text-gray-400">표본 {region.n}명</p>
+              {region.lisa_quadrant && (
+                <p className="mt-0.5 text-gray-600">{LISA_LABELS[region.lisa_quadrant] ?? region.lisa_quadrant}</p>
+              )}
+            </>
+          ) : region.high_risk_per_1000_population !== null ? (
+            <>
+              <p className="mt-0.5 text-gray-600">
+                인구 1천명당 위험군 {region.high_risk_per_1000_population.toFixed(2)}명
+              </p>
+              <p className="text-gray-400">위험군 {region.n_high_risk}명 / 참조인구 {region.population_reference?.toLocaleString('ko-KR')}명</p>
+            </>
+          ) : (
+            <p className="mt-0.5 text-gray-400">생활인구 매칭 실패 - 정규화 불가</p>
           )}
         </>
       ) : (
@@ -186,10 +285,10 @@ function SpatialStatsBanner({ stats }: { stats: SpatialStats | null }) {
   )
 }
 
-function RiskLegend() {
+function RiskLegend({ metricMode }: { metricMode: MetricMode }) {
   return (
     <div className="flex items-center gap-4 rounded-lg border border-brand-border bg-white p-3 text-xs text-gray-600">
-      <span>프록시 점수</span>
+      <span>{metricMode === 'absolute' ? '프록시 점수' : '인구 1천명당 위험군'}</span>
       <div className="flex items-center gap-1">
         <span>낮음</span>
         <div
@@ -200,32 +299,52 @@ function RiskLegend() {
       </div>
       <div className="flex items-center gap-1">
         <span className="inline-block h-3 w-3 rounded" style={{ backgroundColor: NO_DATA_COLOR }} />
-        <span>표본 없음</span>
+        <span>{metricMode === 'absolute' ? '표본 없음' : '생활인구 매칭 실패'}</span>
       </div>
     </div>
   )
 }
 
-function RiskMapGrid({ regions }: { regions: RiskRegion[] }) {
+function RiskMapGrid({ regions, metricMode }: { regions: RiskRegion[]; metricMode: MetricMode }) {
   if (regions.length === 0) {
     return <p className="text-sm text-gray-400">표시할 지역 데이터가 없습니다.</p>
   }
 
-  const sorted = [...regions].sort((a, b) => b.avg_risk_probability - a.avg_risk_probability)
+  const normalizedRange = computeNormalizedRange(regions)
+  const sorted = [...regions].sort((a, b) => {
+    const metricA = metricMode === 'absolute' ? a.avg_risk_probability : (a.high_risk_per_1000_population ?? -1)
+    const metricB = metricMode === 'absolute' ? b.avg_risk_probability : (b.high_risk_per_1000_population ?? -1)
+    return metricB - metricA
+  })
 
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-      {sorted.map((region) => (
-        <div
-          key={region.region_code}
-          className="rounded-lg p-4 text-white shadow-sm"
-          style={{ backgroundColor: riskColor(region.avg_risk_probability), textShadow: '0 1px 2px rgba(0,0,0,0.55)' }}
-        >
-          <p className="text-xs opacity-90">{region.region_code}</p>
-          <p className="mt-1 text-2xl font-semibold">{(region.avg_risk_probability * 100).toFixed(0)}점</p>
-          <p className="mt-1 text-xs opacity-90">표본 {region.n}명</p>
-        </div>
-      ))}
+      {sorted.map((region) => {
+        const colorValue = metricColorValue(region, metricMode, normalizedRange)
+        const backgroundColor = colorValue !== null ? riskColor(colorValue) : NO_DATA_COLOR
+        return (
+          <div
+            key={region.region_code}
+            className="rounded-lg p-4 text-white shadow-sm"
+            style={{ backgroundColor, textShadow: '0 1px 2px rgba(0,0,0,0.55)' }}
+          >
+            <p className="text-xs opacity-90">{region.region_code}</p>
+            {metricMode === 'absolute' ? (
+              <>
+                <p className="mt-1 text-2xl font-semibold">{(region.avg_risk_probability * 100).toFixed(0)}점</p>
+                <p className="mt-1 text-xs opacity-90">표본 {region.n}명</p>
+              </>
+            ) : region.high_risk_per_1000_population !== null ? (
+              <>
+                <p className="mt-1 text-2xl font-semibold">{region.high_risk_per_1000_population.toFixed(2)}명</p>
+                <p className="mt-1 text-xs opacity-90">위험군 {region.n_high_risk}명 / 참조인구 {region.population_reference?.toLocaleString('ko-KR')}명</p>
+              </>
+            ) : (
+              <p className="mt-1 text-sm font-medium opacity-90">생활인구 매칭 실패</p>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }

@@ -136,7 +136,7 @@ function RiskTrajectoryPanel({ trajectory }: { trajectory: RiskTrajectoryOutlook
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="step" label={{ value: '스텝(가상 개월)', position: 'insideBottom', offset: -5 }} />
             <YAxis domain={[0, 1]} tickFormatter={(v: number) => v.toFixed(2)} />
-            <Tooltip formatter={(v: number) => v.toFixed(3)} />
+            <Tooltip formatter={(v) => (typeof v === 'number' ? v.toFixed(3) : '—')} />
             <Legend />
             <Line
               type="monotone"
