@@ -7,6 +7,8 @@
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -139,6 +141,40 @@ def client(pipeline_output_dir, tmp_path):
         test_client.engine = engine  # 회원 관련 테스트에서 DB를 직접 조작/조회할 때 사용
         yield test_client
 
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture()
+def client_with_external_dir(pipeline_output_dir, tmp_path):
+    """client 픽스처와 동일하지만 external_data_dir(생활인구 등)을 호출부가 직접
+    지정할 수 있는 팩토리. 실제 저장소의 data/external/에 있는 파일에 암묵적으로
+    의존하지 않고, 조인 성공/실패/모호(파일 0개 또는 2개 이상) 각 경우를 결정적으로
+    테스트하기 위함."""
+    created: list[TestClient] = []
+
+    def _make(external_data_dir: Path) -> TestClient:
+        store = PipelineStore(
+            data_dir=pipeline_output_dir,
+            policy_catalog_path=layer3_run.DEFAULT_POLICY_CATALOG,
+            external_data_dir=external_data_dir,
+        )
+        engine = db.create_db_engine(f"sqlite:///{tmp_path / f'test_app_{len(created)}.db'}")
+        db.init_db(engine)
+
+        app.dependency_overrides[get_pipeline_store] = lambda: store
+        app.dependency_overrides[get_engine] = lambda: engine
+        app.dependency_overrides[require_admin_api_key] = lambda: None
+        app.dependency_overrides[require_internal_api_key] = lambda: None
+
+        test_client = TestClient(app)
+        test_client.__enter__()
+        created.append(test_client)
+        return test_client
+
+    yield _make
+
+    for test_client in created:
+        test_client.__exit__(None, None, None)
     app.dependency_overrides.clear()
 
 

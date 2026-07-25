@@ -17,6 +17,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 
 from pipeline.layer0_data_contract import cleaner as layer0_cleaner
+from pipeline.layer0_data_contract import external_loader
+from pipeline.layer0_data_contract import join_adapter
 from pipeline.layer2b_risk_model import spatial_autocorrelation
 from pipeline.layer3_optimization import lp_allocator, sensitivity_analysis
 
@@ -52,6 +54,10 @@ def overview(store: PipelineStore = Depends(get_pipeline_store)) -> dict[str, An
 @router.get("/risk-map")
 def risk_map(
     level: str = Query(default="sigungu", pattern="^(dong|sigungu)$"),
+    risk_threshold: float = Query(default=0.6, ge=0.0, le=1.0),
+    fairness_corrected: bool = Query(
+        default=True, description="risk_model_report.json의 성별 equalized-odds 보정임계값을 적용할지"
+    ),
     store: PipelineStore = Depends(get_pipeline_store),
 ) -> dict[str, Any]:
     featured_df = store.featured_dataset
@@ -84,12 +90,77 @@ def risk_map(
         if not spatial_stats.get("skipped"):
             lisa_by_region = spatial_autocorrelation.compute_local_indicators(risk_by_region, adjacency)
 
+    # 2026-07-25 DIVE 2026 이종결합 가점: 지역별 "위험군 수"를 부산시 인구현황
+    # 외부데이터로 정규화("인구 1천명당 위험군 수")한다. 인구가 많은 지역이 그냥
+    # 위험군 수도 많아 보이는 착시를 없애는 게 목적 - 절대 카운트만으로는 강서구처럼
+    # 인구가 적은 지역의 위험도가 과소평가될 수 있다.
+    high_risk_mask, _, _ = _compute_high_risk_mask(
+        risk_scores, featured_df, store.risk_model_report, risk_threshold, fairness_corrected
+    )
+    high_risk_by_region = (
+        merged.assign(_high_risk=high_risk_mask.reindex(merged.index).fillna(False))
+        .groupby(group_col)["_high_risk"]
+        .sum()
+    )
+    high_risk_by_region.index = high_risk_by_region.index.astype(str)
+
+    population_result = store.population_reference
+    population_by_region: dict[str, float] = {}
+    population_join_method_by_region: dict[str, str] = {}
+    population_data_note: str | None = None
+    if population_result is not None:
+        sigungu_ref_df, dong_ref_df, population_report = population_result
+        population_data_note = population_report["age_filter_reason"]
+        cols_present = [c for c in (dong_col, sigungu_col) if c and c in featured_df.columns]
+        if cols_present:
+            pop_joined = join_adapter.join_with_fallback(
+                featured_df[cols_present],
+                dong_col=dong_col if dong_col in featured_df.columns else None,
+                sigungu_col=sigungu_col if sigungu_col in featured_df.columns else None,
+                value_cols=[external_loader.POPULATION_VALUE_COL],
+                right_by_dong=dong_ref_df,
+                right_by_sigungu=sigungu_ref_df,
+                dong_key="행정동코드",
+                sigungu_key="시군구코드",
+            )
+            # region_code(=group_col 값)당 참조인구는 전부 동일 소스에서 온 같은 값이므로
+            # first()로 대표값 하나만 뽑으면 된다(사람 단위가 아니라 지역 단위 지표).
+            region_pop = pop_joined.assign(region_code=pop_joined[group_col].astype(str)).groupby(
+                "region_code"
+            )
+            population_by_region = (
+                region_pop[external_loader.POPULATION_VALUE_COL].first().dropna().to_dict()
+            )
+            population_join_method_by_region = region_pop["_join_method"].first().to_dict()
+
     regions = grouped.to_dict(orient="records")
     for region in regions:
-        lisa = lisa_by_region.get(region["region_code"])
+        region_code = region["region_code"]
+        lisa = lisa_by_region.get(region_code)
         region["lisa_quadrant"] = lisa["quadrant"] if lisa else None
 
-    return {"ready": True, "level": level, "regions": regions, "spatial_stats": spatial_stats}
+        n_high_risk = int(high_risk_by_region.get(region_code, 0))
+        region["n_high_risk"] = n_high_risk
+
+        pop_ref = population_by_region.get(region_code)
+        region["population_reference"] = float(pop_ref) if pop_ref else None
+        region["population_join_method"] = population_join_method_by_region.get(region_code)
+        # 미션 지시: 생활인구 매칭 실패 지역은 0이 아니라 null - 분모=0/미매칭을
+        # "위험군이 0명"과 혼동하면 안 된다(safe_divide의 명시적 분모=0 처리 원칙과
+        # 같은 이유로, 여기서는 fill_value=0 대신 None을 쓴다).
+        region["high_risk_per_1000_population"] = (
+            round(n_high_risk / pop_ref * 1000, 4) if pop_ref else None
+        )
+
+    return {
+        "ready": True,
+        "level": level,
+        "risk_threshold": risk_threshold,
+        "regions": regions,
+        "spatial_stats": spatial_stats,
+        "population_reference_available": population_result is not None,
+        "population_data_note": population_data_note,
+    }
 
 
 @router.get("/clusters")
@@ -105,6 +176,43 @@ def clusters(store: PipelineStore = Depends(get_pipeline_store)) -> dict[str, An
         "cluster_sizes": report.get("cluster_sizes"),
         "suggested_labels": report.get("suggested_labels"),
     }
+
+
+def _compute_high_risk_mask(
+    risk_scores: pd.DataFrame,
+    featured_df: pd.DataFrame | None,
+    risk_model_report: dict[str, Any] | None,
+    risk_threshold: float,
+    fairness_corrected: bool,
+) -> tuple[pd.Series, bool, dict[str, Any] | None]:
+    """'위험군' 판정 로직 - policy_gaps와 risk_map이 공유한다(2026-07-25 risk-map
+    정규화 지표 추가 시 policy_gaps에 있던 로직을 그대로 재사용, 새 판정 기준을
+    만들지 않음). fairness_corrected=True이고 risk_threshold가 risk_model_report의
+    공정성 보정 baseline과 같으면 성별별 equalized-odds 보정임계값을 쓴다."""
+    high_risk_mask = risk_scores["event_probability"] >= risk_threshold
+    fairness_correction_applied = False
+    before_after_gap: dict[str, Any] | None = None
+
+    if fairness_corrected:
+        correction = (risk_model_report or {}).get("fairness_correction") or {}
+        if (
+            not correction.get("skipped")
+            and correction.get("baseline_threshold") is not None
+            and abs(correction["baseline_threshold"] - risk_threshold) < 1e-9
+            and featured_df is not None
+            and "성별" in featured_df.columns
+        ):
+            gender = featured_df["성별"].reindex(risk_scores.index).astype(str)
+            per_person_threshold = gender.map(correction["thresholds"]).fillna(risk_threshold)
+            high_risk_mask = risk_scores["event_probability"] >= per_person_threshold
+            fairness_correction_applied = True
+            evaluation = correction.get("evaluation") or {}
+            before_after_gap = {
+                "before_tpr_gap": evaluation.get("before_tpr_gap"),
+                "after_tpr_gap": evaluation.get("after_tpr_gap"),
+            }
+
+    return high_risk_mask, fairness_correction_applied, before_after_gap
 
 
 @router.get("/policy-gaps")
@@ -130,30 +238,9 @@ def policy_gaps(
 
     assignment_results = store.assignment_results
 
-    fairness_correction_applied = False
-    before_after_gap: dict[str, Any] | None = None
-    high_risk_mask = risk_scores["event_probability"] >= risk_threshold
-
-    if fairness_corrected:
-        correction = (store.risk_model_report or {}).get("fairness_correction") or {}
-        featured_df = store.featured_dataset
-        if (
-            not correction.get("skipped")
-            and correction.get("baseline_threshold") is not None
-            and abs(correction["baseline_threshold"] - risk_threshold) < 1e-9
-            and featured_df is not None
-            and "성별" in featured_df.columns
-        ):
-            gender = featured_df["성별"].reindex(risk_scores.index).astype(str)
-            per_person_threshold = gender.map(correction["thresholds"]).fillna(risk_threshold)
-            high_risk_mask = risk_scores["event_probability"] >= per_person_threshold
-            fairness_correction_applied = True
-            evaluation = correction.get("evaluation") or {}
-            before_after_gap = {
-                "before_tpr_gap": evaluation.get("before_tpr_gap"),
-                "after_tpr_gap": evaluation.get("after_tpr_gap"),
-            }
-
+    high_risk_mask, fairness_correction_applied, before_after_gap = _compute_high_risk_mask(
+        risk_scores, store.featured_dataset, store.risk_model_report, risk_threshold, fairness_corrected
+    )
     high_risk_idx = risk_scores[high_risk_mask].index
     assigned_ids = set(assignment_results["person_id"].unique()) if assignment_results is not None else set()
     gap_ids = [i for i in high_risk_idx if i not in assigned_ids]

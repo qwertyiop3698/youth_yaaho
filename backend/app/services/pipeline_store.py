@@ -17,12 +17,14 @@ import joblib
 import pandas as pd
 import yaml
 
+from pipeline.layer0_data_contract import external_loader
 from pipeline.layer0_data_contract.profiler import load_column_config
 from pipeline.layer1_features import feature_engineer as fe
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 _PRIMARY_DATA_DIR = _PROJECT_ROOT / "data" / "processed"
 _DEMO_DATA_DIR = _PROJECT_ROOT / "data" / "processed_large"
+_DEFAULT_EXTERNAL_DATA_DIR = _PROJECT_ROOT / "data" / "external"
 
 
 def _resolve_default_data_dir() -> Path:
@@ -59,10 +61,14 @@ class PipelineStore:
     """
 
     def __init__(
-        self, data_dir: Path = DEFAULT_DATA_DIR, policy_catalog_path: Path = DEFAULT_POLICY_CATALOG_PATH
+        self,
+        data_dir: Path = DEFAULT_DATA_DIR,
+        policy_catalog_path: Path = DEFAULT_POLICY_CATALOG_PATH,
+        external_data_dir: Path = _DEFAULT_EXTERNAL_DATA_DIR,
     ) -> None:
         self.data_dir = Path(data_dir)
         self.policy_catalog_path = Path(policy_catalog_path)
+        self.external_data_dir = Path(external_data_dir)
 
     @cached_property
     def layer0_config(self) -> dict[str, Any]:
@@ -72,6 +78,28 @@ class PipelineStore:
     def policy_catalog(self) -> dict[str, Any]:
         with open(self.policy_catalog_path, encoding="utf-8") as f:
             return yaml.safe_load(f)
+
+    @cached_property
+    def population_reference(self) -> tuple[pd.DataFrame, pd.DataFrame, dict[str, Any]] | None:
+        """부산시 인구현황(생활인구 대체) 외부데이터. data/external/ 밑에 CSV가 정확히
+        1개일 때만 로드한다 - 0개면 정규화 필드 없이(admin /risk-map이 절대값만
+        반환) 넘어가고, 2개 이상이면 어느 걸 써야 할지 모호하므로 마찬가지로 None을
+        반환한다(임의로 하나를 고르지 않음). 파일명을 하드코딩하지 않는 이유는 당일
+        파일명이 스냅샷 날짜를 포함해 바뀌기 때문(CLAUDE.md "당일 데이터만 갈아끼우면
+        되는" 원칙).
+
+        반환: (시군구 참조테이블, 행정동 참조테이블, report) - report는
+        external_loader.build_sigungu_population_reference()가 만든 것 그대로."""
+        if not self.external_data_dir.exists():
+            return None
+        csv_files = sorted(self.external_data_dir.glob("*.csv"))
+        if len(csv_files) != 1:
+            return None
+        raw = external_loader.load_population_csv(csv_files[0])
+        sigungu_ref, report = external_loader.build_sigungu_population_reference(raw)
+        dong_ref = external_loader.build_dong_population_reference(raw)
+        report["source_file"] = csv_files[0].name
+        return sigungu_ref, dong_ref, report
 
     @cached_property
     def featured_dataset(self) -> pd.DataFrame | None:

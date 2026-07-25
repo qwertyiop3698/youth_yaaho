@@ -1,0 +1,148 @@
+{
+  "ready": true,
+  "source_population_csv": "부산_인구현황_2026_06_통합.csv",
+  "risk_threshold": 0.6,
+  "n_persons_total": 100816,
+  "join_method_counts": {
+    "sigungu": 100816
+  },
+  "n_join_failed": 0,
+  "population_data_notes": {
+    "age_filter_applied": false,
+    "age_filter_reason": "원본 CSV에 연령대 컬럼이 없어 청년만 따로 집계할 수 없음 - 전체 인구를 참조값으로 사용",
+    "time_dimension_available": false,
+    "time_dimension_note": "원본이 시간대별 생활인구가 아니라 거주자인구수(주민등록 기반 상주인구)의 월간 스냅샷 1건뿐 - 이미 '거주지 기준' 인구라 야간 생활인구가 근사하려는 개념과 같은 역할이라 시간대 선택이 불필요함",
+    "code_system_check": "KCB 거주지 시군구 코드와 5자리 체계 완전 일치 확인 - 매핑 테이블 불필요, 매핑 실패 0건",
+    "subtotal_mismatch_sigungu_codes": []
+  },
+  "region_summary": [
+    {
+      "region_code": "26110",
+      "n_persons": 2269,
+      "population_join_method": "sigungu",
+      "population_reference": 36030.0,
+      "n_high_risk": 63,
+      "high_risk_per_1000_population": 1.7485
+    },
+    {
+      "region_code": "26140",
+      "n_persons": 3273,
+      "population_join_method": "sigungu",
+      "population_reference": 100743.0,
+      "n_high_risk": 94,
+      "high_risk_per_1000_population": 0.9331
+    },
+    {
+      "region_code": "26170",
+      "n_persons": 3531,
+      "population_join_method": "sigungu",
+      "population_reference": 82869.0,
+      "n_high_risk": 129,
+      "high_risk_per_1000_population": 1.5567
+    },
+    {
+      "region_code": "26200",
+      "n_persons": 2187,
+      "population_join_method": "sigungu",
+      "population_reference": 100111.0,
+      "n_high_risk": 66,
+      "high_risk_per_1000_population": 0.6593
+    },
+    {
+      "region_code": "26230",
+      "n_persons": 18393,
+      "population_join_method": "sigungu",
+      "population_reference": 363144.0,
+      "n_high_risk": 528,
+      "high_risk_per_1000_population": 1.454
+    },
+    {
+      "region_code": "26260",
+      "n_persons": 7090,
+      "population_join_method": "sigungu",
+      "population_reference": 270200.0,
+      "n_high_risk": 201,
+      "high_risk_per_1000_population": 0.7439
+    },
+    {
+      "region_code": "26290",
+      "n_persons": 7297,
+      "population_join_method": "sigungu",
+      "population_reference": 253413.0,
+      "n_high_risk": 211,
+      "high_risk_per_1000_population": 0.8326
+    },
+    {
+      "region_code": "26320",
+      "n_persons": 5561,
+      "population_join_method": "sigungu",
+      "population_reference": 259973.0,
+      "n_high_risk": 178,
+      "high_risk_per_1000_population": 0.6847
+    },
+    {
+      "region_code": "26350",
+      "n_persons": 7941,
+      "population_join_method": "sigungu",
+      "population_reference": 368730.0,
+      "n_high_risk": 191,
+      "high_risk_per_1000_population": 0.518
+    },
+    {
+      "region_code": "26380",
+      "n_persons": 7585,
+      "population_join_method": "sigungu",
+      "population_reference": 281189.0,
+      "n_high_risk": 229,
+      "high_risk_per_1000_population": 0.8144
+    },
+    {
+      "region_code": "26410",
+      "n_persons": 5376,
+      "population_join_method": "sigungu",
+      "population_reference": 204894.0,
+      "n_high_risk": 152,
+      "high_risk_per_1000_population": 0.7418
+    },
+    {
+      "region_code": "26440",
+      "n_persons": 4980,
+      "population_join_method": "sigungu",
+      "population_reference": 153262.0,
+      "n_high_risk": 167,
+      "high_risk_per_1000_population": 1.0896
+    },
+    {
+      "region_code": "26470",
+      "n_persons": 7185,
+      "population_join_method": "sigungu",
+      "population_reference": 210806.0,
+      "n_high_risk": 197,
+      "high_risk_per_1000_population": 0.9345
+    },
+    {
+      "region_code": "26500",
+      "n_persons": 8368,
+      "population_join_method": "sigungu",
+      "population_reference": 167476.0,
+      "n_high_risk": 262,
+      "high_risk_per_1000_population": 1.5644
+    },
+    {
+      "region_code": "26530",
+      "n_persons": 6071,
+      "population_join_method": "sigungu",
+      "population_reference": 191791.0,
+      "n_high_risk": 187,
+      "high_risk_per_1000_population": 0.975
+    },
+    {
+      "region_code": "26710",
+      "n_persons": 3709,
+      "population_join_method": "sigungu",
+      "population_reference": 174793.0,
+      "n_high_risk": 121,
+      "high_risk_per_1000_population": 0.6922
+    }
+  ]
+}

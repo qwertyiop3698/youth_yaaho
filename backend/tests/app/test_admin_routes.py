@@ -1,3 +1,19 @@
+from pathlib import Path
+
+import pandas as pd
+
+
+def _write_population_csv(dir_path: Path, sigungu_to_population: dict[int, int], filename: str = "pop.csv") -> None:
+    """실제 부산_인구현황 CSV와 동일한 스키마(소계 행 포함)로 테스트용 인구 파일을 만든다."""
+    rows = []
+    for code, population in sigungu_to_population.items():
+        common = {"시군구명": "구", "세대수": 1, "세대당인구": 1.0, "남자인구수": 1, "여자인구수": 1, "남여비율": 1.0}
+        rows.append({"시군구코드": code, "행정동코드": code * 10000, "행정동명": "소계", "거주자인구수": population, **common})
+        rows.append({"시군구코드": code, "행정동코드": code * 10000 + 1, "행정동명": "동1", "거주자인구수": population, **common})
+    dir_path.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(rows).to_csv(dir_path / filename, index=False, encoding="utf-8")
+
+
 class TestOverview:
     def test_returns_summary_stats(self, client):
         response = client.get("/api/v1/admin/overview")
@@ -33,6 +49,72 @@ class TestRiskMap:
         assert 0.0 <= body["spatial_stats"]["p_value"] <= 1.0
         for region in body["regions"]:
             assert region["lisa_quadrant"] in {"HH", "LL", "HL", "LH"}
+
+
+class TestRiskMapPopulationNormalization:
+    """2026-07-25 DIVE 2026 이종결합: 부산시 인구현황 외부데이터로 '인구 1천명당
+    위험군 수'를 정규화. conftest의 합성 원본 KCB는 거주지 시군구 코드로
+    [26260, 26230, 26350, 26320, 26440] 5개를 쓴다(n=150, seed=0 기준 5개 전부 등장)."""
+
+    SIGUNGU_CODES = [26260, 26230, 26350, 26320, 26440]
+
+    def test_no_external_csv_disables_population_fields(self, client_with_external_dir, tmp_path):
+        empty_external_dir = tmp_path / "external_empty"
+        empty_external_dir.mkdir()
+        test_client = client_with_external_dir(empty_external_dir)
+
+        body = test_client.get("/api/v1/admin/risk-map?level=sigungu").json()
+
+        assert body["population_reference_available"] is False
+        for region in body["regions"]:
+            assert region["population_reference"] is None
+            assert region["high_risk_per_1000_population"] is None
+
+    def test_ambiguous_multiple_csv_files_disables_population_fields(self, client_with_external_dir, tmp_path):
+        external_dir = tmp_path / "external_ambiguous"
+        _write_population_csv(external_dir, {code: 10000 for code in self.SIGUNGU_CODES}, filename="a.csv")
+        _write_population_csv(external_dir, {code: 20000 for code in self.SIGUNGU_CODES}, filename="b.csv")
+        test_client = client_with_external_dir(external_dir)
+
+        body = test_client.get("/api/v1/admin/risk-map?level=sigungu").json()
+
+        assert body["population_reference_available"] is False
+
+    def test_matched_population_computes_normalized_rate(self, client_with_external_dir, tmp_path):
+        external_dir = tmp_path / "external_matched"
+        population_by_code = {code: 50000 for code in self.SIGUNGU_CODES}
+        _write_population_csv(external_dir, population_by_code)
+        test_client = client_with_external_dir(external_dir)
+
+        body = test_client.get("/api/v1/admin/risk-map?level=sigungu&risk_threshold=0.0").json()
+
+        assert body["population_reference_available"] is True
+        assert body["population_data_note"] is not None
+        assert len(body["regions"]) > 0
+        for region in body["regions"]:
+            assert region["population_reference"] == 50000.0
+            # risk_threshold=0.0 -> 전원이 위험군이므로 n_high_risk == n(해당 지역 표본수)
+            assert region["n_high_risk"] == region["n"]
+            expected = round(region["n_high_risk"] / 50000.0 * 1000, 4)
+            assert region["high_risk_per_1000_population"] == expected
+            assert region["population_join_method"] == "sigungu"
+
+    def test_unmatched_region_population_is_null_not_zero(self, client_with_external_dir, tmp_path):
+        """생활인구 매칭에 실패한 지역은 0이 아니라 null이어야 한다(미션 원칙)."""
+        external_dir = tmp_path / "external_partial"
+        codes_with_population = self.SIGUNGU_CODES[:-1]  # 마지막 코드(26440) 하나는 일부러 뺌
+        _write_population_csv(external_dir, {code: 30000 for code in codes_with_population})
+        test_client = client_with_external_dir(external_dir)
+
+        body = test_client.get("/api/v1/admin/risk-map?level=sigungu").json()
+
+        regions_by_code = {r["region_code"]: r for r in body["regions"]}
+        assert regions_by_code["26440"]["population_reference"] is None
+        assert regions_by_code["26440"]["high_risk_per_1000_population"] is None
+        for code in codes_with_population:
+            matched_region = regions_by_code[str(code)]
+            assert matched_region["population_reference"] == 30000.0
+            assert matched_region["high_risk_per_1000_population"] is not None
 
 
 class TestClusters:
