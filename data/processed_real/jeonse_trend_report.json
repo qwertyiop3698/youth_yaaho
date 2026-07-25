@@ -1,0 +1,11 @@
+{
+  "n_source_rows": 213872,
+  "n_jeonse_rows": 80971,
+  "n_sigungu": 16,
+  "representative_aggregation_method": "주택유형별(아파트/오피스텔/연립다세대) 분기 중앙값을 전체기간 고정비중으로 가중합(전체 중앙값 대비 분기별 변화율 표준편차가 더 낮아 채택, 2026-07-25 검증)",
+  "n_quarters_per_window": 4,
+  "min_sample_per_quarter_window": 30,
+  "min_sample_for_renewal_rate": 30,
+  "jeonse_trend_insufficient": [],
+  "renewal_rate_insufficient": []
+}

@@ -64,8 +64,9 @@ class TestSanitizeFeatureName:
 
     def test_all_46_raw_and_derived_feature_names_sanitize_without_collision(self):
         """2026-07-09 사용자 요청: 발견된 컬럼 하나만 잡지 말고 column_groups.yaml
-        46개 + Layer1 파생변수/도메인지수 19개(총 65개) 전체를 스캔해서 sanitize
-        후에도 서로 다른 이름끼리 겹치지 않는지, LightGBM이 실제로 학습되는지 확인."""
+        46개 + Layer1 파생변수/도메인지수 20개(총 66개, 2026-07-25 "전세가변동노출"
+        추가로 19->20) 전체를 스캔해서 sanitize 후에도 서로 다른 이름끼리 겹치지
+        않는지, LightGBM이 실제로 학습되는지 확인."""
         import yaml
 
         from pipeline.layer1_features import feature_engineer as fe
@@ -80,7 +81,7 @@ class TestSanitizeFeatureName:
             + list(fe.DOMAIN_INDEX_DEFINITIONS.keys())
         )
         all_cols = raw_cols + derived_cols
-        assert len(all_cols) == 65
+        assert len(all_cols) == 66
 
         sanitized = [baseline_models.sanitize_feature_name(c) for c in all_cols]
         assert len(set(sanitized)) == len(set(all_cols))  # 충돌(다른 이름이 같은 결과로 겹침) 없어야 함

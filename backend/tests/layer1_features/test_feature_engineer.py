@@ -53,13 +53,73 @@ class TestDerivedFeaturesWithZeroDenominator:
 
 
 class TestIndividualDerivedFeatures:
-    def test_job_change_risk_sign_logic(self):
+    def test_job_change_risk_direction_and_magnitude(self):
+        """소득이 줄면 양수(위험), 늘면 음수(안전) - 도메인지수 '높을수록 위험' 방향과
+        일치해야 하고(직장변동위험도는 PROTECTIVE_FEATURES에 없어 z-score가 반전되지
+        않으므로), 감소폭이 클수록(추정연소득 대비) 위험값도 커져야 한다(sign()만 쓰면
+        감소폭 크기가 버려지는 문제 수정)."""
         df = pd.DataFrame({
-            "2년내 직장명이력건수": [2, 3, 0],
-            "2년내 이직후 소득 증감액": [-100, 200, 0],
+            "2년내 직장명이력건수": [2, 3, 2, 0],
+            "2년내 이직후 소득 증감액": [-100, 200, -500, 0],
+            "추정 연소득": [1000, 1000, 1000, 1000],
         })
         result = fe.compute_job_change_risk(df)
-        assert result.tolist() == [-2.0, 3.0, 0.0]
+        assert result.iloc[0] == pytest.approx(0.2)  # 소득 10% 감소 -> 위험 방향(양수)
+        assert result.iloc[1] == pytest.approx(-0.6)  # 소득 20% 증가 -> 안전 방향(음수)
+        assert result.iloc[2] == pytest.approx(1.0)  # 소득 50% 감소(더 큰 감소폭) -> 더 큰 위험값
+        assert result.iloc[0] < result.iloc[2]  # 감소폭이 클수록 위험값도 커짐(크기 정보 보존)
+        assert result.iloc[3] == 0.0  # 이직 없음 -> 0
+
+    def test_job_change_risk_zero_income_falls_back_to_safe_divide(self):
+        df = pd.DataFrame({
+            "2년내 직장명이력건수": [1],
+            "2년내 이직후 소득 증감액": [-50],
+            "추정 연소득": [0],
+        })
+        result = fe.compute_job_change_risk(df)
+        assert result.tolist() == [0.0]
+
+    def test_housing_price_exposure_registered_but_excluded_from_domain_indices(self):
+        """미션 지시: 도메인지수 5종 구성에는 넣지 않는다(GMM 재학습 리스크 회피)."""
+        assert "전세가변동노출" in fe.FEATURE_COMPUTERS
+        for constituent_columns in fe.DOMAIN_INDEX_DEFINITIONS.values():
+            assert "전세가변동노출" not in constituent_columns
+
+    def test_housing_price_exposure_missing_burden_column_returns_nan(self, config):
+        df = pd.DataFrame({"거주지 시군구 코드": [26110]})
+        result = fe.compute_housing_price_exposure(df, config)
+        assert result.isna().all()
+
+    def test_housing_price_exposure_no_reference_data_returns_nan(self, config, monkeypatch):
+        monkeypatch.setattr(fe.rent_price_loader, "load_jeonse_trend_parquet", lambda *a, **k: None)
+        df = pd.DataFrame({"주거가격부담률": [0.5], "거주지 시군구 코드": [26110]})
+        result = fe.compute_housing_price_exposure(df, config)
+        assert result.isna().all()
+
+    def test_housing_price_exposure_sign_direction_falling_jeonse_increases_exposure(self, config, monkeypatch):
+        """전세가 하락(변동률<0) 지역일수록 -전세가변동률이 양수가 되어, 이미 주거비
+        부담이 큰 사람의 노출도가 커져야 한다(전세가변동노출 = 주거가격부담률 ×
+        (-전세가변동률))."""
+        jeonse_trend_df = pd.DataFrame({"시군구코드": [26110, 26140], "전세가변동률": [-0.10, 0.10]})
+        monkeypatch.setattr(fe.rent_price_loader, "load_jeonse_trend_parquet", lambda *a, **k: jeonse_trend_df)
+
+        df = pd.DataFrame({
+            "주거가격부담률": [0.5, 0.5],
+            "거주지 시군구 코드": [26110, 26140],  # 26110=하락지역, 26140=상승지역
+        })
+        result = fe.compute_housing_price_exposure(df, config)
+
+        assert result.iloc[0] == pytest.approx(0.05)  # 0.5 * -(-0.10)
+        assert result.iloc[1] == pytest.approx(-0.05)  # 0.5 * -(0.10)
+
+    def test_housing_price_exposure_unmatched_sigungu_is_nan_not_zero(self, config, monkeypatch):
+        jeonse_trend_df = pd.DataFrame({"시군구코드": [26110], "전세가변동률": [-0.10]})
+        monkeypatch.setattr(fe.rent_price_loader, "load_jeonse_trend_parquet", lambda *a, **k: jeonse_trend_df)
+
+        df = pd.DataFrame({"주거가격부담률": [0.5], "거주지 시군구 코드": [99999]})  # 매칭 안 되는 코드
+        result = fe.compute_housing_price_exposure(df, config)
+
+        assert result.isna().all()
 
     def test_asset_debt_gap_simple_subtraction(self):
         df = pd.DataFrame({

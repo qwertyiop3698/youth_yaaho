@@ -22,6 +22,7 @@ import pandas as pd
 from sklearn.linear_model import LinearRegression
 
 from ..layer0_data_contract import cleaner as layer0_cleaner
+from ..layer0_data_contract import join_adapter, rent_price_loader
 from ..layer0_data_contract.profiler import load_column_config as load_layer0_config
 
 logger = logging.getLogger(__name__)
@@ -223,10 +224,17 @@ def compute_housing_price_burden_ratio(df: pd.DataFrame) -> pd.Series:
 
 
 def compute_job_change_risk(df: pd.DataFrame) -> pd.Series:
-    """직장변동위험도 = 직장이력건수 × sign(이직후소득증감액)"""
+    """직장변동위험도 = 직장이력건수 × (-이직후소득증감액 / 추정연소득)
+
+    도메인지수 방향 원칙("높을수록 위험", PROTECTIVE_FEATURES에 미포함)에 맞춰
+    이직 후 소득이 줄수록(위험) 양수, 늘수록(안전) 음수가 되도록 부호를 잡는다.
+    이전 버전은 sign()만 써서 방향이 반대였고(소득이 늘수록 위험 쪽으로 잡힘) 감소폭
+    크기 정보도 버렸다. 추정연소득으로 정규화해 감소폭 크기를 반영한다."""
     job_history_count = _col_numeric(df, "2년내 직장명이력건수").fillna(0)
     income_change_after_job = _col_numeric(df, "2년내 이직후 소득 증감액").fillna(0)
-    return job_history_count * np.sign(income_change_after_job)
+    income = _col_numeric(df, "추정 연소득")
+    normalized_decline = safe_divide(-income_change_after_job, income)
+    return job_history_count * normalized_decline
 
 
 def compute_residence_workplace_mismatch(df: pd.DataFrame, config: dict[str, Any] | None = None) -> pd.Series:
@@ -266,6 +274,60 @@ def compute_asset_debt_gap(df: pd.DataFrame) -> pd.Series:
     """자산-부채 갭 = 순자산평가금액(주택) - Σ대출잔액"""
     net_asset = _col_numeric(df, "순자산평가금액(주택)").fillna(0)
     return net_asset - _total_loan_balance(df)
+
+
+def compute_housing_price_exposure(df: pd.DataFrame, config: dict[str, Any] | None = None) -> pd.Series:
+    """전세가변동노출 = 주거가격부담률 × (-전세가변동률).
+
+    2026-07-25 DIVE 2026 이종결합 작업3: 부산 전월세 실거래가 외부데이터
+    (rent_price_loader.build_jeonse_trend_table)에서 만든 시군구별 전세가변동률을
+    조인해, "이미 주거비 부담이 큰 사람 + 전세가 하락 지역"의 조합을 강조한다.
+
+    부호 방향: 전세가변동률이 음수(전세가 하락)인 지역일수록 -전세가변동률이
+    양수가 되고, 거기에 주거가격부담률(항상 0 이상)을 곱하므로 "주거비 부담이
+    크면서 전세가까지 하락 중인" 사람일수록 이 값이 커진다. 전세가 하락은
+    역전세(집주인이 보증금을 제때 못 돌려주는) 위험과 직결되는 시장 신호라는
+    점에서 의도적으로 이 조합을 양의 값으로 강조한다. 반대로 전세가가 오르는
+    지역은 음수가 되어 노출도가 낮게 잡힌다.
+
+    시군구코드 조인은 join_with_fallback을 그대로 쓴다(새 조인 로직 금지 - 미션
+    지시). 참조데이터/조인 컬럼이 없거나 매칭에 실패한 행은 원본값 삭제/임의대체
+    금지 원칙에 따라 NaN으로 남긴다(기존 파생변수들의 "컬럼 부재 시 NaN + 경고
+    로깅" 관례와 동일).
+
+    도메인지수 5종 구성에는 넣지 않는다(GMM 재학습 리스크 회피 - 당일 작업 범위
+    아님, 미션 지시). 참고용 파생변수로만 존재한다."""
+    if "주거가격부담률" not in df.columns:
+        logger.warning("전세가변동노출: '주거가격부담률'이 없어 계산할 수 없습니다.")
+        return pd.Series(np.nan, index=df.index)
+
+    jeonse_trend_df = rent_price_loader.load_jeonse_trend_parquet()
+    if jeonse_trend_df is None or "전세가변동률" not in jeonse_trend_df.columns:
+        logger.warning(
+            "전세가변동노출: 전세가 변동 참조데이터(%s)가 없어 계산할 수 없습니다.",
+            rent_price_loader.DEFAULT_JEONSE_TREND_OUTPUT_PATH,
+        )
+        return pd.Series(np.nan, index=df.index)
+
+    config = config or load_layer0_config()
+    join_cols = layer0_cleaner.resolve_join_columns(config)
+    dong_col, sigungu_col = join_cols.get("residence", (None, None))
+    cols_present = [c for c in (dong_col, sigungu_col) if c and c in df.columns]
+    if not cols_present:
+        logger.warning("전세가변동노출: 거주지 조인 컬럼이 없어 계산할 수 없습니다.")
+        return pd.Series(np.nan, index=df.index)
+
+    joined = join_adapter.join_with_fallback(
+        df[cols_present],
+        dong_col=dong_col if dong_col in df.columns else None,
+        sigungu_col=sigungu_col if sigungu_col in df.columns else None,
+        value_cols=["전세가변동률"],
+        right_by_sigungu=jeonse_trend_df,
+        sigungu_key="시군구코드",
+    )
+    housing_burden = _col_numeric(df, "주거가격부담률")
+    jeonse_change_rate = pd.to_numeric(joined["전세가변동률"], errors="coerce")
+    return housing_burden * (-jeonse_change_rate)
 
 
 def compute_delinquency_severity(
@@ -372,7 +434,12 @@ FEATURE_COMPUTERS: dict[str, Callable[[pd.DataFrame], pd.Series]] = {
     "소득증빙갭": compute_income_proof_gap,
     "신용레버리지": compute_credit_leverage,
     "자산-부채 갭": compute_asset_debt_gap,
+    "전세가변동노출": compute_housing_price_exposure,
 }
+
+# config(컬럼 매핑)를 추가로 받아야 하는 파생변수 - engineer_features()의 호출
+# 루프가 이 목록만 fn(df, config)로, 나머지는 fn(df)로 호출한다.
+FEATURE_COMPUTERS_NEEDING_CONFIG = {"거주-근무 불일치", "전세가변동노출"}
 
 
 # ---------------------------------------------------------------------------
@@ -467,7 +534,7 @@ def engineer_features(
     notes: list[str] = []
 
     for name, fn in FEATURE_COMPUTERS.items():
-        df[name] = fn(df, config) if name == "거주-근무 불일치" else fn(df)
+        df[name] = fn(df, config) if name in FEATURE_COMPUTERS_NEEDING_CONFIG else fn(df)
         notes.append(f"{name} 계산 완료")
 
     df["연체심각도"] = compute_delinquency_severity(df, min_sample=min_sample_for_zscore)
