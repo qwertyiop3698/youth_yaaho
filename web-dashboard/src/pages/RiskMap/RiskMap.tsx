@@ -191,15 +191,20 @@ function RiskChoroplethMap({ regions, metricMode }: { regions: RiskRegion[]; met
           const region = regionByCode.get(feature.properties.region_code)
           const colorValue = region ? metricColorValue(region, metricMode, normalizedRange) : null
           const color = colorValue !== null ? riskColor(colorValue) : NO_DATA_COLOR
-          const isHotspot = metricMode === 'absolute' && region?.lisa_quadrant === 'HH'
+          // LISA는 avg_risk_probability(절대값 지표)를 검정한 결과라 정규화 모드에서는
+          // 테두리 강조를 보여주지 않는다(다른 지표를 보면서 이 통계 결과를 겹쳐 보이면
+          // 오해 소지가 있음).
+          const hotspotClassification = metricMode === 'absolute' ? region?.hotspot_classification : undefined
+          const isHotspot = hotspotClassification === 'hotspot'
+          const isColdspot = hotspotClassification === 'coldspot'
           return featureOuterRings(feature).map((path, i) => (
             <Polygon
               key={`${feature.properties.region_code}-${i}`}
               path={path}
               fillColor={color}
               fillOpacity={colorValue !== null ? 0.75 : 0.35}
-              strokeColor={isHotspot ? '#dc2626' : '#FFFFFF'}
-              strokeWeight={isHotspot ? 4 : 2}
+              strokeColor={isHotspot ? '#dc2626' : isColdspot ? '#2563eb' : '#FFFFFF'}
+              strokeWeight={isHotspot || isColdspot ? 4 : 2}
               strokeOpacity={0.9}
               onMouseover={() => setHoveredCode(feature.properties.region_code)}
               onMouseout={() =>
@@ -226,6 +231,28 @@ const LISA_LABELS: Record<string, string> = {
   LH: '저위험 이상치(주변은 높음)',
 }
 
+// hotspot_classification은 LISA quadrant + 통계적 유의성(p<0.05)까지 반영한 배지다
+// (lisa_quadrant만 보면 유의하지 않은 HH도 "hotspot처럼" 보일 수 있어 배지로 구분).
+function HotspotBadge({ classification }: { classification: RiskRegion['hotspot_classification'] }) {
+  if (classification === 'hotspot') {
+    return (
+      <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700">
+        <span className="inline-block h-1.5 w-1.5 rounded-full bg-red-600" />
+        hotspot (유의)
+      </span>
+    )
+  }
+  if (classification === 'coldspot') {
+    return (
+      <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+        <span className="inline-block h-1.5 w-1.5 rounded-full bg-blue-600" />
+        coldspot (유의)
+      </span>
+    )
+  }
+  return null
+}
+
 function DistrictTooltip({
   feature,
   region,
@@ -247,6 +274,7 @@ function DistrictTooltip({
               {region.lisa_quadrant && (
                 <p className="mt-0.5 text-gray-600">{LISA_LABELS[region.lisa_quadrant] ?? region.lisa_quadrant}</p>
               )}
+              <HotspotBadge classification={region.hotspot_classification} />
             </>
           ) : region.high_risk_per_1000_population !== null ? (
             <>
@@ -279,7 +307,7 @@ function SpatialStatsBanner({ stats }: { stats: SpatialStats | null }) {
       <span className="font-medium">Moran&apos;s I = {stats.morans_i.toFixed(3)}</span>{' '}
       (p = {stats.p_value.toFixed(3)}, {stats.n_permutations?.toLocaleString('ko-KR')}회 순열검정) —{' '}
       {significant
-        ? '통계적으로 유의미한 공간적 군집(위험이 특정 지역에 몰려 있음)이 있습니다. 빨간 테두리는 hotspot(HH) 지역입니다.'
+        ? '통계적으로 유의미한 공간적 군집이 있습니다. 빨간 테두리는 hotspot(고위험 군집), 파란 테두리는 coldspot(저위험 군집) 지역입니다.'
         : '통계적으로 유의미한 공간적 군집이 발견되지 않았습니다(우연한 분포와 구분되지 않음).'}
     </div>
   )
@@ -301,6 +329,18 @@ function RiskLegend({ metricMode }: { metricMode: MetricMode }) {
         <span className="inline-block h-3 w-3 rounded" style={{ backgroundColor: NO_DATA_COLOR }} />
         <span>{metricMode === 'absolute' ? '표본 없음' : '생활인구 매칭 실패'}</span>
       </div>
+      {metricMode === 'absolute' && (
+        <>
+          <div className="flex items-center gap-1">
+            <span className="inline-block h-3 w-3 rounded border-2 border-red-600" />
+            <span>hotspot 테두리</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="inline-block h-3 w-3 rounded border-2 border-blue-600" />
+            <span>coldspot 테두리</span>
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -333,6 +373,7 @@ function RiskMapGrid({ regions, metricMode }: { regions: RiskRegion[]; metricMod
               <>
                 <p className="mt-1 text-2xl font-semibold">{(region.avg_risk_probability * 100).toFixed(0)}점</p>
                 <p className="mt-1 text-xs opacity-90">표본 {region.n}명</p>
+                <HotspotBadge classification={region.hotspot_classification} />
               </>
             ) : region.high_risk_per_1000_population !== null ? (
               <>
