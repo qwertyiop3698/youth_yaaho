@@ -106,6 +106,14 @@ class PipelineStore:
         return _read_parquet_if_exists(self.data_dir / "featured_dataset.parquet")
 
     @cached_property
+    def jeonse_trend(self) -> pd.DataFrame | None:
+        """시군구별 전세가변동률/갱신보증금변동률(rent_price_loader.build_jeonse_trend_table
+        산출물, run_rent_price_report.py로 미리 생성됨). 파일이 없으면 None -
+        admin /risk-map이 해당 필드 없이도 죽지 않는다(2026-07-25 DIVE 2026
+        이종결합 작업3)."""
+        return _read_parquet_if_exists(self.data_dir / "busan_jeonse_trend.parquet")
+
+    @cached_property
     def domain_index_population_stats(self) -> dict[str, tuple[float, float]] | None:
         """도메인지수 구성변수들의 population 평균/표준편차(학습 데이터셋 기준).
 

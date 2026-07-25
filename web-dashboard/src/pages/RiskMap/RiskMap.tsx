@@ -46,12 +46,35 @@ function metricColorValue(
   return (region.high_risk_per_1000_population - min) / (max - min)
 }
 
+// 2026-07-25 DIVE 2026 이종결합 작업3: "역전세 위험" = 전세가 하락(jeonse_price_change_rate<0)
+// + 위험군 밀집(그 지역의 high_risk_per_1000_population이 지도에 표시된 지역들의
+// 중앙값보다 높음)의 교차. 절대적인 밀집 기준값이 따로 정의돼 있지 않아, 지금
+// 화면에 보이는 지역들 사이의 상대적 중앙값을 기준으로 삼는다(정규화 지표와 같은
+// 이유 - 절대 상한이 없는 비율이라 상대 비교가 더 의미 있음).
+function computeHighRiskDensityMedian(regions: RiskRegion[]): number | null {
+  const values = regions
+    .map((r) => r.high_risk_per_1000_population)
+    .filter((v): v is number => v !== null)
+    .sort((a, b) => a - b)
+  if (values.length === 0) return null
+  const mid = Math.floor(values.length / 2)
+  return values.length % 2 === 0 ? (values[mid - 1] + values[mid]) / 2 : values[mid]
+}
+
+function isReverseJeonseRisk(region: RiskRegion, densityMedian: number | null): boolean {
+  if (region.jeonse_price_change_rate === null || region.jeonse_price_change_rate >= 0) return false
+  if (densityMedian === null || region.high_risk_per_1000_population === null) return false
+  return region.high_risk_per_1000_population > densityMedian
+}
+
 export function RiskMap() {
   const [level, setLevel] = useState<RiskMapLevel>('sigungu')
   const [metricMode, setMetricMode] = useState<MetricMode>('absolute')
+  const [showReverseJeonseLayer, setShowReverseJeonseLayer] = useState(false)
   const { data, isLoading, isError, error } = useRiskMap(level)
 
   const populationAvailable = data && data.ready ? data.population_reference_available : false
+  const jeonseTrendAvailable = data && data.ready ? data.jeonse_trend_available : false
 
   return (
     <div className="flex flex-col gap-6">
@@ -97,6 +120,24 @@ export function RiskMap() {
               </button>
             ))}
           </div>
+          <label
+            className={`flex items-center gap-2 rounded-lg border border-brand-border bg-white px-3 py-1 text-sm ${
+              jeonseTrendAvailable ? 'text-gray-600' : 'cursor-not-allowed text-gray-300'
+            }`}
+            title={
+              jeonseTrendAvailable
+                ? '전세가 하락 + 위험군 밀집이 겹치는 지역을 강조합니다.'
+                : '전세가 변동 참조데이터가 없어 이 레이어를 쓸 수 없습니다.'
+            }
+          >
+            <input
+              type="checkbox"
+              checked={showReverseJeonseLayer}
+              disabled={!jeonseTrendAvailable}
+              onChange={(e) => setShowReverseJeonseLayer(e.target.checked)}
+            />
+            역전세 위험 레이어
+          </label>
         </div>
       </div>
 
@@ -108,7 +149,11 @@ export function RiskMap() {
               {metricMode === 'normalized' && data.population_data_note && (
                 <PopulationDataNoteBanner note={data.population_data_note} />
               )}
-              <RiskChoroplethMap regions={data.regions} metricMode={metricMode} />
+              <RiskChoroplethMap
+                regions={data.regions}
+                metricMode={metricMode}
+                showReverseJeonseLayer={showReverseJeonseLayer}
+              />
             </div>
           ) : (
             <div className="flex flex-col gap-3">
@@ -119,7 +164,11 @@ export function RiskMap() {
               {metricMode === 'normalized' && data.population_data_note && (
                 <PopulationDataNoteBanner note={data.population_data_note} />
               )}
-              <RiskMapGrid regions={data.regions} metricMode={metricMode} />
+              <RiskMapGrid
+                regions={data.regions}
+                metricMode={metricMode}
+                showReverseJeonseLayer={showReverseJeonseLayer}
+              />
             </div>
           )
         ) : data ? (
@@ -138,7 +187,15 @@ function PopulationDataNoteBanner({ note }: { note: string }) {
   )
 }
 
-function RiskChoroplethMap({ regions, metricMode }: { regions: RiskRegion[]; metricMode: MetricMode }) {
+function RiskChoroplethMap({
+  regions,
+  metricMode,
+  showReverseJeonseLayer,
+}: {
+  regions: RiskRegion[]
+  metricMode: MetricMode
+  showReverseJeonseLayer: boolean
+}) {
   const [kakaoLoading, kakaoError] = useKakaoLoader({ appkey: KAKAO_APP_KEY ?? '' })
   const { data: geojson, isLoading: geoLoading, isError: geoError } = useBusanGeoJson()
   const [hoveredCode, setHoveredCode] = useState<string | null>(null)
@@ -150,6 +207,7 @@ function RiskChoroplethMap({ regions, metricMode }: { regions: RiskRegion[]; met
   }, [regions])
 
   const normalizedRange = useMemo(() => computeNormalizedRange(regions), [regions])
+  const densityMedian = useMemo(() => computeHighRiskDensityMedian(regions), [regions])
 
   if (!KAKAO_APP_KEY) {
     return (
@@ -213,13 +271,33 @@ function RiskChoroplethMap({ regions, metricMode }: { regions: RiskRegion[]; met
             />
           ))
         })}
+        {showReverseJeonseLayer &&
+          geojson.features
+            .filter((feature) => {
+              const region = regionByCode.get(feature.properties.region_code)
+              return region && isReverseJeonseRisk(region, densityMedian)
+            })
+            .map((feature) => (
+              <CustomOverlayMap
+                key={`reverse-jeonse-${feature.properties.region_code}`}
+                position={featureLabelPoint(feature)}
+                yAnchor={0.5}
+              >
+                <ReverseJeonseMarker />
+              </CustomOverlayMap>
+            ))}
         {hoveredFeature && (
           <CustomOverlayMap position={featureLabelPoint(hoveredFeature)} yAnchor={1.1}>
-            <DistrictTooltip feature={hoveredFeature} region={hoveredRegion} metricMode={metricMode} />
+            <DistrictTooltip
+              feature={hoveredFeature}
+              region={hoveredRegion}
+              metricMode={metricMode}
+              densityMedian={showReverseJeonseLayer ? densityMedian : undefined}
+            />
           </CustomOverlayMap>
         )}
       </KakaoMap>
-      <RiskLegend metricMode={metricMode} />
+      <RiskLegend metricMode={metricMode} showReverseJeonseLayer={showReverseJeonseLayer} />
     </div>
   )
 }
@@ -253,14 +331,37 @@ function HotspotBadge({ classification }: { classification: RiskRegion['hotspot_
   return null
 }
 
+// 지도 위 마커(호버 없이 항상 보임) - 전세가 하락 + 위험군 밀집 교차 지역을 표시.
+function ReverseJeonseMarker() {
+  return (
+    <div
+      className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-purple-600 shadow-md"
+      title="역전세 위험 교차 지역(전세가 하락 + 위험군 밀집)"
+    >
+      <span className="h-1.5 w-1.5 rounded-full bg-white" />
+    </div>
+  )
+}
+
+function ReverseJeonseBadge() {
+  return (
+    <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-semibold text-purple-700">
+      <span className="inline-block h-1.5 w-1.5 rounded-full bg-purple-600" />
+      역전세 위험 교차
+    </span>
+  )
+}
+
 function DistrictTooltip({
   feature,
   region,
   metricMode,
+  densityMedian,
 }: {
   feature: BusanDistrictFeature
   region: RiskRegion | undefined
   metricMode: MetricMode
+  densityMedian?: number | null
 }) {
   return (
     <div className="rounded-lg border border-brand-border bg-white px-3 py-2 text-xs shadow-md">
@@ -286,6 +387,14 @@ function DistrictTooltip({
           ) : (
             <p className="mt-0.5 text-gray-400">생활인구 매칭 실패 - 정규화 불가</p>
           )}
+          {region.jeonse_price_change_rate !== null && (
+            <p className="mt-0.5 text-gray-400">
+              전세가변동률 {(region.jeonse_price_change_rate * 100).toFixed(1)}%
+              {region.renewal_deposit_change_rate !== null &&
+                ` · 갱신보증금변동률 ${(region.renewal_deposit_change_rate * 100).toFixed(1)}%`}
+            </p>
+          )}
+          {densityMedian !== undefined && isReverseJeonseRisk(region, densityMedian) && <ReverseJeonseBadge />}
         </>
       ) : (
         <p className="mt-0.5 text-gray-400">표본 데이터 없음</p>
@@ -313,9 +422,15 @@ function SpatialStatsBanner({ stats }: { stats: SpatialStats | null }) {
   )
 }
 
-function RiskLegend({ metricMode }: { metricMode: MetricMode }) {
+function RiskLegend({
+  metricMode,
+  showReverseJeonseLayer,
+}: {
+  metricMode: MetricMode
+  showReverseJeonseLayer: boolean
+}) {
   return (
-    <div className="flex items-center gap-4 rounded-lg border border-brand-border bg-white p-3 text-xs text-gray-600">
+    <div className="flex flex-wrap items-center gap-4 rounded-lg border border-brand-border bg-white p-3 text-xs text-gray-600">
       <span>{metricMode === 'absolute' ? '프록시 점수' : '인구 1천명당 위험군'}</span>
       <div className="flex items-center gap-1">
         <span>낮음</span>
@@ -341,16 +456,31 @@ function RiskLegend({ metricMode }: { metricMode: MetricMode }) {
           </div>
         </>
       )}
+      {showReverseJeonseLayer && (
+        <div className="flex items-center gap-1">
+          <span className="inline-block h-3 w-3 rounded-full bg-purple-600" />
+          <span>역전세 위험 교차(전세가 하락 + 위험군 밀집)</span>
+        </div>
+      )}
     </div>
   )
 }
 
-function RiskMapGrid({ regions, metricMode }: { regions: RiskRegion[]; metricMode: MetricMode }) {
+function RiskMapGrid({
+  regions,
+  metricMode,
+  showReverseJeonseLayer,
+}: {
+  regions: RiskRegion[]
+  metricMode: MetricMode
+  showReverseJeonseLayer: boolean
+}) {
   if (regions.length === 0) {
     return <p className="text-sm text-gray-400">표시할 지역 데이터가 없습니다.</p>
   }
 
   const normalizedRange = computeNormalizedRange(regions)
+  const densityMedian = computeHighRiskDensityMedian(regions)
   const sorted = [...regions].sort((a, b) => {
     const metricA = metricMode === 'absolute' ? a.avg_risk_probability : (a.high_risk_per_1000_population ?? -1)
     const metricB = metricMode === 'absolute' ? b.avg_risk_probability : (b.high_risk_per_1000_population ?? -1)
@@ -365,9 +495,15 @@ function RiskMapGrid({ regions, metricMode }: { regions: RiskRegion[]; metricMod
         return (
           <div
             key={region.region_code}
-            className="rounded-lg p-4 text-white shadow-sm"
+            className="relative rounded-lg p-4 text-white shadow-sm"
             style={{ backgroundColor, textShadow: '0 1px 2px rgba(0,0,0,0.55)' }}
           >
+            {showReverseJeonseLayer && isReverseJeonseRisk(region, densityMedian) && (
+              <span
+                className="absolute right-2 top-2 h-3 w-3 rounded-full border-2 border-white bg-purple-600"
+                title="역전세 위험 교차 지역"
+              />
+            )}
             <p className="text-xs opacity-90">{region.region_code}</p>
             {metricMode === 'absolute' ? (
               <>

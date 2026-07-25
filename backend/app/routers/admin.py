@@ -138,12 +138,27 @@ def risk_map(
             )
             population_join_method_by_region = region_pop["_join_method"].first().to_dict()
 
+    # 2026-07-25 DIVE 2026 이종결합 작업3: 전세가 변동 지표(rent_price_loader
+    # 산출물, 시군구 단위만 존재). featured_df처럼 사람 단위 KCB 데이터를 지역
+    # 참조테이블에 조인하는 게 아니라 이미 지역 단위인 두 테이블을 region_code로
+    # 직접 매칭하는 것이라 join_with_fallback(사람-지역 조인용)을 쓰지 않는다.
+    jeonse_trend_df = store.jeonse_trend
+    jeonse_price_change_by_region: dict[str, float] = {}
+    renewal_deposit_change_by_region: dict[str, float] = {}
+    if jeonse_trend_df is not None:
+        lookup = jeonse_trend_df.set_index(jeonse_trend_df["시군구코드"].astype(str))
+        jeonse_price_change_by_region = lookup["전세가변동률"].dropna().to_dict()
+        renewal_deposit_change_by_region = lookup["갱신보증금변동률"].dropna().to_dict()
+
     regions = grouped.to_dict(orient="records")
     for region in regions:
         region_code = region["region_code"]
         lisa = lisa_by_region.get(region_code)
         region["lisa_quadrant"] = lisa["quadrant"] if lisa else None
         region["hotspot_classification"] = spatial_autocorrelation.classify_hotspot(lisa)
+
+        region["jeonse_price_change_rate"] = jeonse_price_change_by_region.get(region_code)
+        region["renewal_deposit_change_rate"] = renewal_deposit_change_by_region.get(region_code)
 
         n_high_risk = int(high_risk_by_region.get(region_code, 0))
         region["n_high_risk"] = n_high_risk
@@ -166,6 +181,7 @@ def risk_map(
         "spatial_stats": spatial_stats,
         "population_reference_available": population_result is not None,
         "population_data_note": population_data_note,
+        "jeonse_trend_available": jeonse_trend_df is not None,
     }
 
 

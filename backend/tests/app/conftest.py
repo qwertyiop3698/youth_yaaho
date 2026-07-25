@@ -179,6 +179,36 @@ def client_with_external_dir(pipeline_output_dir, tmp_path):
 
 
 @pytest.fixture()
+def client_with_data_dir(tmp_path):
+    """client 픽스처와 동일하지만 data_dir을 호출부가 직접 지정할 수 있는 팩토리.
+    pipeline_output_dir(세션 스코프 공용 픽스처)을 오염시키지 않으면서 특정 산출물
+    (예: busan_jeonse_trend.parquet)이 있을 때/없을 때를 결정적으로 테스트하기
+    위함 - 호출부가 pipeline_output_dir을 복사한 뒤 원하는 파일을 추가해서 넘긴다."""
+    created: list[TestClient] = []
+
+    def _make(data_dir: Path) -> TestClient:
+        store = PipelineStore(data_dir=data_dir, policy_catalog_path=layer3_run.DEFAULT_POLICY_CATALOG)
+        engine = db.create_db_engine(f"sqlite:///{tmp_path / f'test_app_{len(created)}.db'}")
+        db.init_db(engine)
+
+        app.dependency_overrides[get_pipeline_store] = lambda: store
+        app.dependency_overrides[get_engine] = lambda: engine
+        app.dependency_overrides[require_admin_api_key] = lambda: None
+        app.dependency_overrides[require_internal_api_key] = lambda: None
+
+        test_client = TestClient(app)
+        test_client.__enter__()
+        created.append(test_client)
+        return test_client
+
+    yield _make
+
+    for test_client in created:
+        test_client.__exit__(None, None, None)
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture()
 def empty_client(tmp_path):
     """산출물이 하나도 없는(Layer1~3 미실행) 상태의 앱 - 방어적 응답 확인용."""
     store = PipelineStore(data_dir=tmp_path / "empty", policy_catalog_path=layer3_run.DEFAULT_POLICY_CATALOG)

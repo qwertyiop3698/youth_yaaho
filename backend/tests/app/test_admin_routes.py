@@ -1,6 +1,8 @@
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
+import pytest
 
 
 def _write_population_csv(dir_path: Path, sigungu_to_population: dict[int, int], filename: str = "pop.csv") -> None:
@@ -69,6 +71,46 @@ class TestRiskMap:
                 assert region["lisa_quadrant"] == "HH"
             if region["hotspot_classification"] == "coldspot":
                 assert region["lisa_quadrant"] == "LL"
+
+
+class TestRiskMapJeonseTrend:
+    """2026-07-25 DIVE 2026 이종결합 작업3: 전세가변동률/갱신보증금변동률 필드.
+    conftest의 합성 원본 KCB는 거주지 시군구 코드로 [26260, 26230, 26350, 26320, 26440]를 쓴다."""
+
+    def test_no_jeonse_trend_file_disables_fields(self, client_with_data_dir, pipeline_output_dir, tmp_path):
+        import shutil
+        data_dir = tmp_path / "no_jeonse"
+        shutil.copytree(pipeline_output_dir, data_dir)
+        test_client = client_with_data_dir(data_dir)
+
+        body = test_client.get("/api/v1/admin/risk-map?level=sigungu").json()
+
+        assert body["jeonse_trend_available"] is False
+        for region in body["regions"]:
+            assert region["jeonse_price_change_rate"] is None
+            assert region["renewal_deposit_change_rate"] is None
+
+    def test_jeonse_trend_fields_populated_when_file_present(self, client_with_data_dir, pipeline_output_dir, tmp_path):
+        import shutil
+        data_dir = tmp_path / "with_jeonse"
+        shutil.copytree(pipeline_output_dir, data_dir)
+        pd.DataFrame({
+            "시군구코드": [26260, 26230, 26350, 26320, 26440],
+            "전세가변동률": [-0.05, 0.03, np.nan, -0.12, 0.0],
+            "갱신보증금변동률": [0.01, np.nan, 0.02, -0.01, 0.0],
+            "표본수": [500, 600, 40, 700, 300],
+        }).to_parquet(data_dir / "busan_jeonse_trend.parquet", index=False)
+        test_client = client_with_data_dir(data_dir)
+
+        body = test_client.get("/api/v1/admin/risk-map?level=sigungu").json()
+
+        assert body["jeonse_trend_available"] is True
+        regions_by_code = {r["region_code"]: r for r in body["regions"]}
+        assert regions_by_code["26260"]["jeonse_price_change_rate"] == pytest.approx(-0.05)
+        assert regions_by_code["26440"]["jeonse_price_change_rate"] == pytest.approx(0.0)
+        # 전세가변동률이 NaN인 26350은 null이어야 함(0으로 채우면 안 됨)
+        assert regions_by_code["26350"]["jeonse_price_change_rate"] is None
+        assert regions_by_code["26230"]["renewal_deposit_change_rate"] is None
 
 
 class TestRiskMapPopulationNormalization:
