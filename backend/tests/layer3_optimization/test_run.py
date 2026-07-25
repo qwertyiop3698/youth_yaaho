@@ -55,6 +55,36 @@ class TestRunEndToEnd:
         assert any(g > 0 for g in gaps)
         assert any(g < 0 for g in gaps)
 
+    def test_sample_info_reports_no_sampling_by_default(self, tmp_path):
+        featured_path, risk_scores_path = _write_synthetic_inputs(tmp_path, n=30)
+        report = run.run(featured_path, risk_scores_path, run.DEFAULT_POLICY_CATALOG, tmp_path / "out")
+        assert report["sample_info"] == {
+            "sampled": False, "n_total_available": 30, "n_used": 30, "sample_seed": None,
+        }
+
+    def test_sample_size_smaller_than_population_subsamples(self, tmp_path):
+        """2026-07-25: 100,816명 규모 MIP가 5분+ 안에 안 풀려서 추가한 표본 옵션 -
+        전체보다 작은 sample_size를 주면 실제로 그 인원수만 쓰고 리포트에 남겨야 한다."""
+        featured_path, risk_scores_path = _write_synthetic_inputs(tmp_path, n=30)
+        report = run.run(
+            featured_path, risk_scores_path, run.DEFAULT_POLICY_CATALOG, tmp_path / "out",
+            sample_size=10, sample_seed=7,
+        )
+        assert report["sample_info"] == {
+            "sampled": True, "n_total_available": 30, "n_used": 10, "sample_seed": 7,
+        }
+        assignment_df = pd.read_parquet(tmp_path / "out" / "assignment_results.parquet")
+        assert assignment_df["person_id"].nunique() <= 10
+
+    def test_sample_size_larger_than_population_uses_full_population(self, tmp_path):
+        featured_path, risk_scores_path = _write_synthetic_inputs(tmp_path, n=30)
+        report = run.run(
+            featured_path, risk_scores_path, run.DEFAULT_POLICY_CATALOG, tmp_path / "out",
+            sample_size=1000,
+        )
+        assert report["sample_info"]["sampled"] is False
+        assert report["sample_info"]["n_used"] == 30
+
     def test_raises_clear_error_when_featured_dataset_missing(self, tmp_path):
         _, risk_scores_path = _write_synthetic_inputs(tmp_path)
         with pytest.raises(FileNotFoundError):

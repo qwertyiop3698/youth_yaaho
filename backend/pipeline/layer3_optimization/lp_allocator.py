@@ -308,7 +308,12 @@ def build_and_solve_lp(
     # (안 남기면 나중에 이 배정표가 진짜 최적인지 그냥 시간 다 돼서 멈춘 건지
     # 구분이 안 되는 채로 쓰일 위험이 있음).
     solver = solver or pulp.PULP_CBC_CMD(msg=False, timeLimit=DEFAULT_SOLVER_TIME_LIMIT_SECONDS)
-    timed_out = _solve_with_hard_timeout(prob, solver, DEFAULT_SOLVER_TIME_LIMIT_SECONDS)
+    # 워치독은 solver에 실제로 설정된 timeLimit을 따른다(호출부가 커스텀 solver로
+    # 더 길게/짧게 줬으면 그 값을 존중 - 하드코딩된 상수로 워치독이 먼저 죽여버리면
+    # solver의 timeLimit 파라미터가 무의미해짐). solver.timeLimit이 없으면(None)
+    # 기본 상수로 폴백한다.
+    watchdog_timeout = getattr(solver, "timeLimit", None) or DEFAULT_SOLVER_TIME_LIMIT_SECONDS
+    timed_out = _solve_with_hard_timeout(prob, solver, watchdog_timeout)
 
     assignments = []
     if not timed_out:

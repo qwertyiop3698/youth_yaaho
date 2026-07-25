@@ -48,6 +48,8 @@ def run(
     risk_scores_path: Path = DEFAULT_RISK_SCORES_INPUT,
     policy_catalog_path: Path = DEFAULT_POLICY_CATALOG,
     output_dir: Path = DEFAULT_OUTPUT_DIR,
+    sample_size: int | None = None,
+    sample_seed: int = 42,
 ) -> dict:
     if not featured_path.exists():
         raise FileNotFoundError(
@@ -64,6 +66,25 @@ def run(
     featured_df = pd.read_parquet(featured_path)
     risk_scores = pd.read_parquet(risk_scores_path)
     df = featured_df.join(risk_scores[[RISK_COL]], how="left")
+
+    # 2026-07-25 실측: 100,816명 x 정책6개(=60만개 이진변수) MIP는 예산을 원래
+    # 값(전체 인구 기준)으로 되돌려도 5분+유예 안에 실행가능해를 하나도 못 찾았다
+    # (n=1500 리허설 때의 9,000개 변수와는 차원이 다른 조합폭발). 해커톤 당일
+    # 데드라인 안에 실제로 결과를 뽑으려면, 이미 검증된 규모(n=1500 근방)로
+    # 무작위 표본을 뽑아 Layer3만 표본으로 돌린다 - Layer0~2b(진단/위험지도/
+    # 클러스터링)는 이미 전체 인구로 끝나 있으므로 영향 없다. 표본 여부/크기/시드는
+    # optimization_report.json에 그대로 남겨 "이건 전수가 아니라 표본 기반"임을
+    # 숨기지 않는다(발표 시 명시 필요 - doc05 시뮬레이션 라벨 관례와 같은 이유).
+    n_total_available = int(len(df))
+    sampled = sample_size is not None and sample_size < n_total_available
+    if sampled:
+        df = df.sample(n=sample_size, random_state=sample_seed)
+    sample_info = {
+        "sampled": sampled,
+        "n_total_available": n_total_available,
+        "n_used": int(len(df)),
+        "sample_seed": sample_seed if sampled else None,
+    }
 
     policy_catalog = load_policy_catalog(policy_catalog_path)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -101,6 +122,7 @@ def run(
     gap_df = synthetic_reward.compute_prior_vs_true_gap(policy_catalog, bandit_result["true_effectiveness"])
 
     report = {
+        "sample_info": sample_info,
         "lp": lp_report,
         "sensitivity_marginal_gain_per_10pct_budget": marginal_gain,
         "policy_marginal_return": policy_marginal_df.to_dict(orient="records"),
@@ -163,6 +185,11 @@ def run(
     stage_bar.update(1)
     stage_bar.close()
 
+    if sampled:
+        print(
+            f"[Layer3] 표본 사용: 전체 {sample_info['n_total_available']}명 중 "
+            f"{sample_info['n_used']}명 표본(seed={sample_seed}) - 전수 아님, 발표 시 명시 필요"
+        )
     print(f"[Layer3] LP: {lp_report}")
     print(f"[Layer3] 예산 10%당 커버리지율 평균 증가분: {marginal_gain}")
     print(f"[Layer3] 정책별 예산 10%당 한계 커버리지: {policy_marginal_df.to_dict(orient='records')}")
@@ -191,10 +218,16 @@ def main() -> None:
     parser.add_argument("--risk-scores", type=Path, default=DEFAULT_RISK_SCORES_INPUT)
     parser.add_argument("--policy-catalog", type=Path, default=DEFAULT_POLICY_CATALOG)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
+    parser.add_argument(
+        "--sample-size", type=int, default=None,
+        help="지정하면 전체 인구에서 이 인원수만큼 무작위 표본을 뽑아 Layer3만 표본으로 실행(2026-07-25: "
+        "100,816명 규모는 MIP가 5분+ 안에 안 풀려서 추가함). 미지정 시 전체 인구 그대로 사용.",
+    )
+    parser.add_argument("--sample-seed", type=int, default=42)
     parser.add_argument("--log-level", default="WARNING")
     args = parser.parse_args()
     logging.basicConfig(level=args.log_level)
-    run(args.featured, args.risk_scores, args.policy_catalog, args.output_dir)
+    run(args.featured, args.risk_scores, args.policy_catalog, args.output_dir, args.sample_size, args.sample_seed)
 
 
 if __name__ == "__main__":
