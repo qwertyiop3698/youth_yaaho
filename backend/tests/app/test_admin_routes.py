@@ -50,6 +50,26 @@ class TestRiskMap:
         for region in body["regions"]:
             assert region["lisa_quadrant"] in {"HH", "LL", "HL", "LH"}
 
+    def test_uses_official_boundary_adjacency_when_available(self, client):
+        """2026-07-25 작업2: data/external/의 공식 행정동 경계가 있으면 그걸 인접행렬
+        소스로 써야 한다(기존 web-dashboard 단순화 폴리곤 대신)."""
+        response = client.get("/api/v1/admin/risk-map?level=sigungu")
+        body = response.json()
+        adjacency_source = body["spatial_stats"]["adjacency_source"]
+        assert adjacency_source["n_sigungu"] == 16
+        assert adjacency_source["n_dong_features"] == 206
+        assert "행정동" in adjacency_source["source"]
+
+    def test_regions_include_hotspot_classification(self, client):
+        response = client.get("/api/v1/admin/risk-map?level=sigungu")
+        body = response.json()
+        for region in body["regions"]:
+            assert region["hotspot_classification"] in {"hotspot", "coldspot", "not_significant"}
+            if region["hotspot_classification"] == "hotspot":
+                assert region["lisa_quadrant"] == "HH"
+            if region["hotspot_classification"] == "coldspot":
+                assert region["lisa_quadrant"] == "LL"
+
 
 class TestRiskMapPopulationNormalization:
     """2026-07-25 DIVE 2026 이종결합: 부산시 인구현황 외부데이터로 '인구 1천명당

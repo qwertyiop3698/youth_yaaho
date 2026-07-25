@@ -90,3 +90,22 @@ class TestComputeLocalIndicators:
         adjacency = _cycle_adjacency(2)
         values = pd.Series([10.0, 1.0], index=["0", "1"])
         assert sa.compute_local_indicators(values, adjacency) == {}
+
+
+class TestClassifyHotspot:
+    def test_significant_hh_is_hotspot(self):
+        assert sa.classify_hotspot({"quadrant": "HH", "is_significant": True}) == "hotspot"
+
+    def test_significant_ll_is_coldspot(self):
+        assert sa.classify_hotspot({"quadrant": "LL", "is_significant": True}) == "coldspot"
+
+    def test_significant_hl_is_not_significant_bucket(self):
+        """HL/LH는 이상치 사분면이지 hotspot/coldspot 군집이 아니므로 3분류에서는
+        not_significant로 묶는다(세부 사분면은 lisa_quadrant 필드로 별도 유지)."""
+        assert sa.classify_hotspot({"quadrant": "HL", "is_significant": True}) == "not_significant"
+
+    def test_insignificant_hh_is_not_significant(self):
+        assert sa.classify_hotspot({"quadrant": "HH", "is_significant": False}) == "not_significant"
+
+    def test_none_lisa_is_not_significant(self):
+        assert sa.classify_hotspot(None) == "not_significant"

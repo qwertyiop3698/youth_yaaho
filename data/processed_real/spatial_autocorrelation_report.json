@@ -1,0 +1,139 @@
+{
+  "ready": true,
+  "n_sigungu_with_data": 16,
+  "adjacency_summary": {
+    "source": "boundary_loader(행정동 경계 dissolve)",
+    "n_dong_features": 206,
+    "n_sigungu": 16,
+    "dong_count_by_sigungu": {
+      "26110": 9,
+      "26140": 13,
+      "26170": 12,
+      "26200": 11,
+      "26230": 20,
+      "26260": 13,
+      "26290": 17,
+      "26320": 13,
+      "26350": 18,
+      "26380": 16,
+      "26410": 16,
+      "26440": 9,
+      "26470": 12,
+      "26500": 10,
+      "26530": 12,
+      "26710": 5
+    },
+    "min_shared_vertices": 2,
+    "coord_precision": 5,
+    "isolated_sigungu_connections": [],
+    "adjacency_edge_count": 32
+  },
+  "global_morans_i": {
+    "skipped": false,
+    "morans_i": -0.2040204565875412,
+    "p_value": 0.251,
+    "n_regions": 16,
+    "n_permutations": 999,
+    "is_significant": false
+  },
+  "lisa_hotspot_regions": [],
+  "lisa_coldspot_regions": [],
+  "lisa_all_regions": {
+    "26110": {
+      "local_i": -1.5264868693496483,
+      "quadrant": "LH",
+      "p_value": 0.075,
+      "is_significant": false
+    },
+    "26140": {
+      "local_i": 0.04457644243394005,
+      "quadrant": "HH",
+      "p_value": 0.625,
+      "is_significant": false
+    },
+    "26170": {
+      "local_i": -0.9656131577113627,
+      "quadrant": "HL",
+      "p_value": 0.215,
+      "is_significant": false
+    },
+    "26200": {
+      "local_i": -1.047711445940567,
+      "quadrant": "HL",
+      "p_value": 0.215,
+      "is_significant": false
+    },
+    "26230": {
+      "local_i": -0.08818959889150568,
+      "quadrant": "LH",
+      "p_value": 0.4,
+      "is_significant": false
+    },
+    "26260": {
+      "local_i": 0.33881084415163415,
+      "quadrant": "LL",
+      "p_value": 0.155,
+      "is_significant": false
+    },
+    "26290": {
+      "local_i": -0.07132753472565545,
+      "quadrant": "LH",
+      "p_value": 0.58,
+      "is_significant": false
+    },
+    "26320": {
+      "local_i": -0.026994890123660915,
+      "quadrant": "HL",
+      "p_value": 0.935,
+      "is_significant": false
+    },
+    "26350": {
+      "local_i": 0.10862425686149108,
+      "quadrant": "LL",
+      "p_value": 0.91,
+      "is_significant": false
+    },
+    "26380": {
+      "local_i": 0.2119130219388118,
+      "quadrant": "HH",
+      "p_value": 0.305,
+      "is_significant": false
+    },
+    "26410": {
+      "local_i": 0.22667280179058166,
+      "quadrant": "LL",
+      "p_value": 0.475,
+      "is_significant": false
+    },
+    "26440": {
+      "local_i": 0.5377700980490909,
+      "quadrant": "HH",
+      "p_value": 0.24,
+      "is_significant": false
+    },
+    "26470": {
+      "local_i": 0.1942372270351127,
+      "quadrant": "LL",
+      "p_value": 0.65,
+      "is_significant": false
+    },
+    "26500": {
+      "local_i": -0.49330452216551735,
+      "quadrant": "HL",
+      "p_value": 0.035,
+      "is_significant": true
+    },
+    "26530": {
+      "local_i": 0.2660856086867326,
+      "quadrant": "HH",
+      "p_value": 0.35,
+      "is_significant": false
+    },
+    "26710": {
+      "local_i": -0.9733895874401376,
+      "quadrant": "HL",
+      "p_value": 0.085,
+      "is_significant": false
+    }
+  }
+}

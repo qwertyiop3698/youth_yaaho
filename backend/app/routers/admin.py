@@ -16,6 +16,7 @@ import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 
+from pipeline.layer0_data_contract import boundary_loader
 from pipeline.layer0_data_contract import cleaner as layer0_cleaner
 from pipeline.layer0_data_contract import external_loader
 from pipeline.layer0_data_contract import join_adapter
@@ -31,6 +32,8 @@ router = APIRouter(prefix="/api/v1/admin", tags=["admin"], dependencies=[Depends
 
 def _not_ready(reason: str) -> dict[str, Any]:
     return {"ready": False, "reason": reason}
+
+
 
 
 @router.get("/overview")
@@ -83,12 +86,14 @@ def risk_map(
     # 계산한다(dong 단위는 RiskMap.tsx 주석대로 아직 경계 geojson이 없다).
     spatial_stats: dict[str, Any] | None = None
     lisa_by_region: dict[str, dict[str, Any]] = {}
-    if level == "sigungu" and spatial_autocorrelation.DEFAULT_GEOJSON_PATH.exists():
-        risk_by_region = grouped.set_index("region_code")["avg_risk_probability"]
-        adjacency = spatial_autocorrelation.load_busan_adjacency(spatial_autocorrelation.DEFAULT_GEOJSON_PATH)
-        spatial_stats = spatial_autocorrelation.compute_morans_i(risk_by_region, adjacency)
-        if not spatial_stats.get("skipped"):
-            lisa_by_region = spatial_autocorrelation.compute_local_indicators(risk_by_region, adjacency)
+    if level == "sigungu":
+        adjacency, adjacency_report = boundary_loader.load_adjacency_with_fallback()
+        if adjacency is not None:
+            risk_by_region = grouped.set_index("region_code")["avg_risk_probability"]
+            spatial_stats = spatial_autocorrelation.compute_morans_i(risk_by_region, adjacency)
+            spatial_stats["adjacency_source"] = adjacency_report
+            if not spatial_stats.get("skipped"):
+                lisa_by_region = spatial_autocorrelation.compute_local_indicators(risk_by_region, adjacency)
 
     # 2026-07-25 DIVE 2026 이종결합 가점: 지역별 "위험군 수"를 부산시 인구현황
     # 외부데이터로 정규화("인구 1천명당 위험군 수")한다. 인구가 많은 지역이 그냥
@@ -138,6 +143,7 @@ def risk_map(
         region_code = region["region_code"]
         lisa = lisa_by_region.get(region_code)
         region["lisa_quadrant"] = lisa["quadrant"] if lisa else None
+        region["hotspot_classification"] = spatial_autocorrelation.classify_hotspot(lisa)
 
         n_high_risk = int(high_risk_by_region.get(region_code, 0))
         region["n_high_risk"] = n_high_risk

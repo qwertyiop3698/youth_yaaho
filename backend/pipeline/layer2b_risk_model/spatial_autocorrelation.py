@@ -181,6 +181,18 @@ def compute_morans_i(
     }
 
 
+def classify_hotspot(lisa: dict[str, Any] | None) -> str:
+    """LISA 결과를 "hotspot"/"coldspot"/"not_significant" 3분류로 단순화한다
+    (admin /risk-map, run_spatial_autocorrelation_report.py 공용). 세부 사분면
+    (HL/LH, 이상치)이나 통계적으로 유의하지 않은 결과는 전부 not_significant로
+    묶는다 - 세부 사분면 자체는 별도로 lisa_quadrant 필드에 그대로 남긴다."""
+    if lisa and lisa.get("is_significant") and lisa.get("quadrant") == "HH":
+        return "hotspot"
+    if lisa and lisa.get("is_significant") and lisa.get("quadrant") == "LL":
+        return "coldspot"
+    return "not_significant"
+
+
 def compute_local_indicators(
     values: pd.Series,
     adjacency: dict[str, set[str]],
