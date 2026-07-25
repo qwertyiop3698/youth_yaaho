@@ -17,6 +17,7 @@ bcrypt>=4.0
 pyjwt>=2.8
 python-dotenv>=1.0
 tqdm>=4.66
+psutil>=5.9
 # lifelines는 아직 추가하지 않음 - Cox 생존분석이 비활성(cox_trainer.py 스텁) 상태라
 # duration을 관측할 수 있는 실제 패널데이터가 확보되면 추가할 것.
 # 실제 배포 전 PostgreSQL 드라이버(psycopg2-binary 등) 추가 필요(지금은 SQLite).

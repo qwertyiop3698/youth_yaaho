@@ -36,10 +36,14 @@ person_id 관련: 현재 KCB 컬럼 명세(46개)에는 person_id/고유식별�
 from __future__ import annotations
 
 import logging
+import os
+import threading
+import time
 from typing import Any
 
 import numpy as np
 import pandas as pd
+import psutil
 import pulp
 
 logger = logging.getLogger(__name__)
@@ -49,6 +53,87 @@ logger = logging.getLogger(__name__)
 # (knapsack형 MIP 특성상 예산이 빠듯할수록 조합폭발이 심해짐). 무한정 안 걸리게
 # 상한을 둔다 - 값은 실측(각 budget_cap 축소 비율별 solve 시간 측정) 기준으로 정함.
 DEFAULT_SOLVER_TIME_LIMIT_SECONDS = 30
+
+# 2026-07-25 실측(100,816명 규모, 자격조건이 촘촘해진 뒤): 위 timeLimit을 PuLP의
+# PULP_CBC_CMD(timeLimit=...)로 넘기면 CBC 실행파일에 "-sec 30"으로 전달되긴 하지만,
+# CBC의 시간제한 체크는 branch-and-bound 노드 사이 체크포인트에서만 동작해서 문제가
+# 크면(60만개 이진변수) 첫 노드(루트 LP relaxation/presolve) 자체가 30초를 넘겨도
+# 전혀 발동하지 않을 수 있다 - 실제로 21분 넘게 하드행되는 것을 확인함. 게다가 PuLP의
+# COIN_CMD.solve_CBC()는 subprocess.Popen을 파이썬 쪽 timeout 없는 cbc.wait()로
+# 기다리기만 해서(PuLP 자체엔 강제 종료 기능이 없음), CBC가 스스로 안 멈추면 영원히
+# 안 끝난다. 그래서 여기서 프로세스 트리를 직접 감시하는 워치독을 추가로 둔다.
+SOLVER_KILL_GRACE_SECONDS = 15.0
+
+
+def _kill_process_tree_by_name(pid: int, names: set[str]) -> list[int]:
+    """pid의 자손 프로세스 중 이름이 names(소문자 비교)에 해당하는 프로세스만 강제
+    종료한다(비슷한 이름의 다른 프로세스까지 건드리지 않도록 pid 기준으로 자손만
+    조회 - 프로세스 이름만으로 시스템 전체를 뒤지지 않는다). 종료된 PID 목록을 반환."""
+    killed: list[int] = []
+    try:
+        parent = psutil.Process(pid)
+    except psutil.NoSuchProcess:
+        return killed
+    for child in parent.children(recursive=True):
+        try:
+            if child.name().lower() in names:
+                child.kill()
+                killed.append(child.pid)
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+    return killed
+
+
+def _solve_with_hard_timeout(
+    prob: "pulp.LpProblem",
+    solver: "pulp.LpSolver",
+    timeout_seconds: float,
+    kill_grace_seconds: float = SOLVER_KILL_GRACE_SECONDS,
+) -> bool:
+    """prob.solve(solver)를 워치독과 함께 실행한다.
+
+    PuLP의 timeLimit(-> CBC의 "-sec")이 항상 지켜진다는 보장이 없으므로(모듈
+    docstring 참고), timeout_seconds + kill_grace_seconds를 넘기면 이 프로세스가
+    띄운 cbc 자식 프로세스를 강제 종료한다. 반환값이 True면 워치독이 실제로
+    개입했다는 뜻 - 이 경우 "그 시점까지 찾은 최선의 실행가능해"조차 신뢰할 수
+    없으므로(강제 종료 시점의 변수값을 보장 못 함) 호출부는 배정 결과를 비운다.
+    """
+    done = threading.Event()
+    errors: list[BaseException] = []
+
+    def _target() -> None:
+        try:
+            prob.solve(solver)
+        except BaseException as exc:  # noqa: BLE001 - 워치독 강제종료로 인한 예외도 여기로 들어옴
+            errors.append(exc)
+        finally:
+            done.set()
+
+    my_pid = os.getpid()
+    worker = threading.Thread(target=_target, daemon=True)
+    worker.start()
+
+    hard_deadline = timeout_seconds + kill_grace_seconds
+    finished_in_time = done.wait(timeout=hard_deadline)
+
+    timed_out = False
+    if not finished_in_time:
+        killed_pids = _kill_process_tree_by_name(my_pid, {"cbc", "cbc.exe"})
+        logger.warning(
+            "LP 솔버가 시간제한(%s초 + 유예 %s초)을 넘겨 강제 종료했습니다(PID: %s). "
+            "이번 배정은 해를 찾지 못한 것으로 처리합니다.",
+            timeout_seconds,
+            kill_grace_seconds,
+            killed_pids,
+        )
+        timed_out = True
+        done.wait(timeout=kill_grace_seconds)  # 강제종료 후 스레드가 정리될 시간을 준다
+
+    if errors and not timed_out:
+        # 워치독이 개입하지 않았는데 예외가 났다면 우리가 만든 상황이 아니므로 그대로 전파한다.
+        raise errors[0]
+
+    return timed_out
 
 AGE_COLUMN = "연령대"
 
@@ -108,6 +193,12 @@ def evaluate_policy_eligibility(df: pd.DataFrame, policy_name: str, policy_cfg: 
         elif "expected_value" in rule_cfg:
             values = df[column]
             satisfies = values == rule_cfg["expected_value"]
+        elif "excluded_value" in rule_cfg:
+            # "특정 값이면 확실히 자격 미충족"만 아는 경우(예: 자가거주여부=1은 확실히
+            # 자가). 나머지 코드값의 개별 의미는 몰라도 "그 특정 값이 아니면 통과"는
+            # 데이터명세로 검증 가능하므로 verified로 취급할 수 있다.
+            values = df[column]
+            satisfies = values != rule_cfg["excluded_value"]
         else:
             logger.warning(
                 "정책 '%s' 규칙 '%s'의 형식을 해석할 수 없어 자격 있음으로 간주합니다.", policy_name, rule_name
@@ -217,33 +308,38 @@ def build_and_solve_lp(
     # (안 남기면 나중에 이 배정표가 진짜 최적인지 그냥 시간 다 돼서 멈춘 건지
     # 구분이 안 되는 채로 쓰일 위험이 있음).
     solver = solver or pulp.PULP_CBC_CMD(msg=False, timeLimit=DEFAULT_SOLVER_TIME_LIMIT_SECONDS)
-    prob.solve(solver)
+    timed_out = _solve_with_hard_timeout(prob, solver, DEFAULT_SOLVER_TIME_LIMIT_SECONDS)
 
     assignments = []
-    for i in valid_df.index:
-        for p in policies:
-            var_value = x[(i, p)].value()
-            if var_value is not None and var_value > 0.5:
-                assignments.append(
-                    {
-                        "person_id": i,
-                        "policy": p,
-                        "delta_risk": delta_risk[(i, p)],
-                        "eligibility_confidence": eligibility[(i, p)]["confidence"],
-                    }
-                )
+    if not timed_out:
+        # 워치독이 강제종료한 경우 변수값을 신뢰할 수 없으므로(해를 못 읽었을 수
+        # 있음) 배정을 아예 비운다 - "확인 안 된 부분해"를 실제 배정인 것처럼
+        # 내보내지 않는다.
+        for i in valid_df.index:
+            for p in policies:
+                var_value = x[(i, p)].value()
+                if var_value is not None and var_value > 0.5:
+                    assignments.append(
+                        {
+                            "person_id": i,
+                            "policy": p,
+                            "delta_risk": delta_risk[(i, p)],
+                            "eligibility_confidence": eligibility[(i, p)]["confidence"],
+                        }
+                    )
 
     assignment_df = pd.DataFrame(assignments, columns=["person_id", "policy", "delta_risk", "eligibility_confidence"])
 
     report = {
         "skipped": False,
-        "status": pulp.LpStatus[prob.status],
-        "solver_status": pulp.LpSolution[prob.sol_status],
-        "is_optimal": prob.sol_status == pulp.LpSolutionOptimal,
-        "objective_value": pulp.value(prob.objective),
+        "status": "Timeout_Killed" if timed_out else pulp.LpStatus[prob.status],
+        "solver_status": "Killed_By_Watchdog" if timed_out else pulp.LpSolution[prob.sol_status],
+        "is_optimal": (not timed_out) and prob.sol_status == pulp.LpSolutionOptimal,
+        "objective_value": None if timed_out else pulp.value(prob.objective),
         "n_persons": int(len(valid_df)),
         "n_policies": len(policies),
         "n_assignments": int(len(assignment_df)),
         "max_policy_per_person": max_policy_per_person,
+        "solver_watchdog_killed": timed_out,
     }
     return assignment_df, report

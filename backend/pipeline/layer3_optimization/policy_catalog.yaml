@@ -30,10 +30,15 @@
 # eligibility 구조 (2026-07-09 사용자 확정)
 # -------------------------------------------
 #   각 규칙은 confidence: verified | assumed_unresolved_codebook 중 하나를 가진다.
-#     - verified: 실제 데이터로 검증 가능(현재는 연령대만 해당 - 5세단위지만 코드북 확실)
-#     - assumed_unresolved_codebook: 코드북이 불확실하거나(자가거주여부 등) 아예 해당
-#       컬럼이 데이터에 없음(세대주 여부, 근로 여부 등). 이 경우 "자격 있음으로 간주 +
-#       경고 로그"로 처리한다(임의로 특정 코드값=자격충족이라고 단정하지 않음).
+#     - verified: 실제 데이터로 검증 가능. expected_value(특정 값이면 충족) 또는
+#       excluded_value(특정 값만 아니면 충족, 나머지 코드의 세부 의미는 몰라도 됨)
+#       형태로 표현한다(연령대, 2026-07-25부터 자가거주여부의 무주택 조건도 해당 -
+#       공식 데이터명세서로 "1=본인소유주택거주"만 확인되면 "1이 아니면 무주택"은
+#       검증 가능하기 때문. 코드값 전체를 다 알아야만 verified인 건 아니다).
+#     - assumed_unresolved_codebook: 코드북이 불확실하거나 아예 해당 컬럼이 데이터에
+#       없음(세대주 여부, 근로 여부 등 - 이 프로젝트가 받은 42개 컬럼 명세에 자체가
+#       없어 원천적으로 확인 불가). 이 경우 "자격 있음으로 간주 + 경고 로그"로 처리한다
+#       (임의로 특정 코드값=자격충족이라고 단정하지 않음).
 #   주의: "청년디딤돌카드 플러스"의 미취업 조건에 Thin Filer 여부를 프록시로 쓰지
 #   않는다 - Thin Filer(신용이력 없음)와 미취업은 별개 개념이라 잘못된 대체가 될 수
 #   있다(Layer2 event 정의에서 Thin Filer를 위험 프록시로 쓰지 않기로 한 결정과 일관).
@@ -82,8 +87,11 @@ policies:
         confidence: verified
       requires_no_home_ownership:
         column: 자가거주여부
-        expected_value: 0
-        confidence: assumed_unresolved_codebook
+        # 2026-07-25: 공식 데이터명세서(★데이터 사용 칼럼 정의서.xlsx) 확인 - "본인(개인)
+        # 소유 주택에 거주하면 1". 0/3 등 나머지 코드의 세부 의미는 몰라도 "1이 아니면
+        # 무주택"은 명세로 직접 검증 가능하므로 verified로 승격.
+        excluded_value: 1
+        confidence: verified
 
   머물자리론:
     youthcenter_plcy_no: "20260513005400213200"  # 부산 청년 임차보증금 대출 및 대출이자 지원(머물자리론)
@@ -100,8 +108,11 @@ policies:
         confidence: verified
       requires_no_home_ownership:
         column: 자가거주여부
-        expected_value: 0
-        confidence: assumed_unresolved_codebook
+        # 2026-07-25: 공식 데이터명세서(★데이터 사용 칼럼 정의서.xlsx) 확인 - "본인(개인)
+        # 소유 주택에 거주하면 1". 0/3 등 나머지 코드의 세부 의미는 몰라도 "1이 아니면
+        # 무주택"은 명세로 직접 검증 가능하므로 verified로 승격.
+        excluded_value: 1
+        confidence: verified
       requires_householder:
         column: null   # "세대주" 여부 컬럼 자체가 데이터에 없음
         confidence: assumed_unresolved_codebook
@@ -123,8 +134,11 @@ policies:
         confidence: assumed_unresolved_codebook
       requires_no_home_ownership:
         column: 자가거주여부
-        expected_value: 0
-        confidence: assumed_unresolved_codebook
+        # 2026-07-25: 공식 데이터명세서(★데이터 사용 칼럼 정의서.xlsx) 확인 - "본인(개인)
+        # 소유 주택에 거주하면 1". 0/3 등 나머지 코드의 세부 의미는 몰라도 "1이 아니면
+        # 무주택"은 명세로 직접 검증 가능하므로 verified로 승격.
+        excluded_value: 1
+        confidence: verified
 
   희망신용상담센터:
     youthcenter_plcy_no: "20260513005400213196"  # 부산 청년 신용회복 지원 (정책명 개편으로 실제 명칭 변경됨)
